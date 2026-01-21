@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.google.com)",
+      "WebSearch",
+      "Bash(node --version:*)",
+      "Bash(npm --version)",
+      "Bash(/opt/homebrew/bin/brew install:*)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(/opt/homebrew/bin/npm --version)",
+      "Bash(export PATH=\"/opt/homebrew/bin:$PATH\")",
+      "Bash(npm install)",
+      "Bash(npx expo install expo-asset expo-font)",
+      "Bash(npx expo start)",
+      "Bash(npx expo install:*)",
+      "Bash(npx expo start:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

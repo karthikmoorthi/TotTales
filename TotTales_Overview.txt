@@ -1,0 +1,23 @@
+﻿Overview: Toddlers/Kids typically develop transient but strong interests towards one of more themes during their growth phase of 1-5 years. You might have heard of toddlers being overly obsessive about Animals, Cars, Barbie dolls, Dinosaurs etc. Parents typically tend to buy them story books, toys or show them cartoons or shows related to this idea to garner their interest. The purpose of this app is to help create personalized, customized and printable short story books that cater to their interest. This can also be a cute gifting idea to your neighbor or friend's kid. 
+
+
+Who is this app for?
+1. Parents of small kids who are looking for comics and storybooks to engage their kids. Return Gift ideas for their kids birthday parties.
+2. Friends of Parents - Who are typically invited for parties and wondering what to buy. 
+3. Pre-Schools/Daycare - Who are looking to organize a party involving toddlers. 
+
+
+App workflow: 
+1. Login - Secured login based on google or other popular accounts. 
+2. Input - Get a few toddler pictures and a broad description of the theme they are interested in. Also share additional interests about the kid like places to visit, favorite sport, favorite activity etc. 
+3. Generate a short 5-6 page short story which involves the kid to be the main character in the comic and also include other interests as prominent in the story. The story generated should have a simple storyline that appeals to the toddler during the day or a bedtime routine.  
+4. Viewable: The app should present a delightful viewing experience where the parent can swipe through the pages and enjoy the generated copy. 
+5. Printable: Download and print into a comic. Hence the generated version should have the title page with an image followed by the story line.
+6. Shareable: Sometimes parents want to just share it to others digitally and hence there should be a pdf version generated that can be simply shared to others. Parents should also have the option to share it to a gallery which can inspire other users.
+
+
+Other critical features for the app to provide a great experience
+1. Inspiration to mimic: Create a gallery of scrollable mini comics that are generated based on an imaginary child in prominent toddler interest themes like farm animals, cars, barbies, labubus, legos etc. 
+2. Enable last mile editing: How much ever great the output is, Parents who care about details always want to make some minor changes to the storyline, illustrations etc. So the app should allow some last mile minor changes to help fit the comic to their personalized need. 
+3. Payment: Ideally this app would work the best with payment as generating the comic might include some API cost. 
+4. Account and Project view: Repeat usage is a likely and intended usecase hence the app should allow for parents to have a trail of all their past projects.
