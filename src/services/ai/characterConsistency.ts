@@ -1,5 +1,23 @@
 import { generateWithImages } from './gemini';
 import { imageToBase64 } from '@/utils/helpers';
+import { getSignedUrl } from '@/services/supabase/storage';
+import { STORAGE_BUCKETS } from '@/utils/constants';
+
+/**
+ * Check if a URL is a Supabase storage URL
+ */
+function isSupabaseStorageUrl(url: string): boolean {
+  return url.includes('supabase.co/storage') || url.includes('supabase.in/storage');
+}
+
+/**
+ * Extract storage path from Supabase public URL
+ */
+function extractStoragePath(url: string): string | null {
+  // URL format: https://xxx.supabase.co/storage/v1/object/public/bucket-name/path/to/file
+  const match = url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/);
+  return match ? match[1] : null;
+}
 
 /**
  * Analyze photos and generate a detailed character description
@@ -11,12 +29,24 @@ export async function analyzeChildPhotos(
   childAge?: number,
   childGender?: string
 ): Promise<string> {
-  // Convert photos to base64
+  // Convert photos to base64, handling both local URIs and Supabase URLs
   const images = await Promise.all(
-    photoUris.map(async (uri) => ({
-      base64: await imageToBase64(uri),
-      mimeType: 'image/jpeg',
-    }))
+    photoUris.map(async (uri) => {
+      let imageUri = uri;
+
+      // If it's a Supabase storage URL, get a signed URL for private bucket access
+      if (isSupabaseStorageUrl(uri)) {
+        const path = extractStoragePath(uri);
+        if (path) {
+          imageUri = await getSignedUrl(STORAGE_BUCKETS.CHILD_PHOTOS, path, 300); // 5 min expiry
+        }
+      }
+
+      return {
+        base64: await imageToBase64(imageUri),
+        mimeType: 'image/jpeg',
+      };
+    })
   );
 
   const prompt = `You are helping create a children's storybook. Analyze these photos of a child and provide a detailed character description that can be used to maintain consistency when generating illustrations.
