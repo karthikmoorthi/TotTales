@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { IMAGE_COMPRESSION_QUALITY, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT } from './constants';
@@ -13,6 +14,12 @@ export function generateId(): string {
  * Compress and resize an image
  */
 export async function compressImage(uri: string): Promise<string> {
+  if (Platform.OS === 'web') {
+    // ImageManipulator doesn't work well on web with blob URLs
+    // Return original URI - web images are typically already optimized
+    return uri;
+  }
+
   const result = await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: IMAGE_MAX_WIDTH, height: IMAGE_MAX_HEIGHT } }],
@@ -25,10 +32,28 @@ export async function compressImage(uri: string): Promise<string> {
  * Convert image URI to base64
  */
 export async function imageToBase64(uri: string): Promise<string> {
-  const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  return base64;
+  if (Platform.OS === 'web') {
+    // On web, fetch the blob and convert to base64
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        // Remove the data:image/...;base64, prefix
+        const base64 = dataUrl.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } else {
+    // On native, use FileSystem
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return base64;
+  }
 }
 
 /**

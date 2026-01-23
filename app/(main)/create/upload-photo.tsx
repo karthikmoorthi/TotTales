@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+
+// Cross-platform alert helper
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,7 +51,7 @@ export default function UploadPhotoScreen() {
     }
 
     if (photos.length === 0) {
-      Alert.alert('Photo Required', 'Please add at least one photo of your child.');
+      showAlert('Photo Required', 'Please add at least one photo of your child.');
       return false;
     }
 
@@ -76,7 +85,7 @@ export default function UploadPhotoScreen() {
       router.push('/(main)/create/select-theme');
     } catch (error) {
       console.error('Error creating child:', error);
-      Alert.alert('Error', 'Failed to save child profile. Please try again.');
+      showAlert('Error', 'Failed to save child profile. Please try again.');
     }
   };
 

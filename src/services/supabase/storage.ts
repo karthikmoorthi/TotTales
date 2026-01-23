@@ -1,7 +1,32 @@
+import { Platform } from 'react-native';
 import { supabase } from './client';
 import { STORAGE_BUCKETS } from '@/utils/constants';
 import { compressImage, getChildPhotoPath, getStoryImagePath } from '@/utils/helpers';
 import * as FileSystem from 'expo-file-system';
+
+/**
+ * Convert image URI to bytes for upload (handles both web and native)
+ */
+async function getImageBytes(photoUri: string): Promise<Uint8Array> {
+  if (Platform.OS === 'web') {
+    // On web, fetch the blob and convert to array buffer
+    const response = await fetch(photoUri);
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+  } else {
+    // On native, use FileSystem
+    const base64 = await FileSystem.readAsStringAsync(photoUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  }
+}
 
 /**
  * Upload a child's photo to storage
@@ -12,21 +37,14 @@ export async function uploadChildPhoto(
   photoUri: string,
   photoIndex: number
 ): Promise<string> {
-  // Compress the image first
-  const compressedUri = await compressImage(photoUri);
+  let uriToUpload = photoUri;
 
-  // Read file as base64
-  const base64 = await FileSystem.readAsStringAsync(compressedUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-
-  // Convert to ArrayBuffer
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+  // Only compress on native (web blob URLs don't work with ImageManipulator)
+  if (Platform.OS !== 'web') {
+    uriToUpload = await compressImage(photoUri);
   }
 
+  const bytes = await getImageBytes(uriToUpload);
   const path = getChildPhotoPath(userId, childId, photoIndex);
 
   const { data, error } = await supabase.storage

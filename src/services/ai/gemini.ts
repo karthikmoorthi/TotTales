@@ -10,17 +10,17 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Text generation model
 export const textModel = genAI.getGenerativeModel({
-  model: 'gemini-1.5-pro',
+  model: 'gemini-1.5-flash',
 });
 
 // Vision model for analyzing images
 export const visionModel = genAI.getGenerativeModel({
-  model: 'gemini-1.5-pro',
+  model: 'gemini-1.5-flash',
 });
 
-// Image generation model
+// Image generation model (for Imagen via Gemini)
 export const imageModel = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash-exp',
+  model: 'gemini-2.0-flash',
 });
 
 /**
