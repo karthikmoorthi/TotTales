@@ -44,9 +44,9 @@ export async function generateStoryImage(
   // Use retry logic for API calls
   return retryWithBackoff(async () => {
     try {
-      // Using Gemini 2.0 Flash for image generation
+      // Using Gemini 2.5 Flash Image for image generation
       const model = genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash-image',
         generationConfig: {
           responseModalities: ['Text', 'Image'],
         } as any,
