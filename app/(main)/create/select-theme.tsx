@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStoryCreation } from '@/contexts/StoryCreationContext';
-import { useThemes } from '@/hooks/useThemesAndStyles';
+import { useThemes } from '@/hooks';
 import { Header, Button, LoadingSpinner } from '@/components/ui';
 import { ThemeSelector } from '@/components/creation';
 import { COLORS, SPACING } from '@/utils/constants';

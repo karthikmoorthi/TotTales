@@ -19,6 +19,7 @@ export const GENERATION_TIMEOUT = 120000;
 export const STORAGE_BUCKETS = {
   CHILD_PHOTOS: 'child-photos',
   STORY_IMAGES: 'story-images',
+  PREVIEW_IMAGES: 'preview-images',
 } as const;
 
 // Generation Stages
@@ -94,4 +95,37 @@ export const BORDER_RADIUS = {
   lg: 12,
   xl: 16,
   full: 9999,
+} as const;
+
+// Comic Book Styling
+export const COMIC_BOOK = {
+  // Container dimensions
+  widthPercent: 0.7, // 70% of screen width
+  aspectRatio: 3 / 4, // 3:4 portrait ratio
+
+  // Panel styling
+  panelBorderWidth: 3,
+  panelBorderColor: '#374151',
+  panelBorderRadius: 8,
+  panelBackground: '#FFFFFF',
+
+  // Caption box styling
+  captionBackground: '#FFFBEB',
+  captionBorderColor: '#374151',
+  captionBorderWidth: 2,
+
+  // Shadow for depth
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 8,
+
+  // Animation
+  flipDuration: 400,
+
+  // Text colors
+  titleColor: '#1E293B',
+  textColor: '#1E293B',
+  pageNumberColor: '#6B7280',
 } as const;

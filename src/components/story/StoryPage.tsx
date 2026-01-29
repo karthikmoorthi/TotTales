@@ -1,11 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { StoryPage as StoryPageType } from '@/types';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '@/utils/constants';
+import { COLORS, FONT_SIZES, SPACING, COMIC_BOOK } from '@/utils/constants';
 import { RegenerateButton } from './RegenerateButton';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface StoryPageProps {
   page: StoryPageType;
@@ -22,6 +20,7 @@ export function StoryPage({
 }: StoryPageProps) {
   return (
     <View style={styles.container}>
+      {/* Image section - takes most of the space */}
       <View style={styles.imageContainer}>
         {page.image_url ? (
           <Image
@@ -47,9 +46,14 @@ export function StoryPage({
         )}
       </View>
 
-      <View style={styles.textContainer}>
-        <Text style={styles.pageNumber}>Page {page.page_number}</Text>
+      {/* Caption box - comic style text container */}
+      <View style={styles.captionBox}>
         <Text style={styles.narrative}>{page.narrative_text}</Text>
+      </View>
+
+      {/* Page number in corner */}
+      <View style={styles.pageNumberContainer}>
+        <Text style={styles.pageNumber}>{page.page_number}</Text>
       </View>
     </View>
   );
@@ -57,9 +61,8 @@ export function StoryPage({
 
 const styles = StyleSheet.create({
   container: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-    backgroundColor: COLORS.background,
+    flex: 1,
+    backgroundColor: COMIC_BOOK.panelBackground,
   },
   imageContainer: {
     flex: 1,
@@ -81,30 +84,32 @@ const styles = StyleSheet.create({
   },
   regenerateContainer: {
     position: 'absolute',
-    top: SPACING.lg,
-    right: SPACING.lg,
+    top: SPACING.sm,
+    right: SPACING.sm,
   },
-  textContainer: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING['2xl'],
-    borderTopLeftRadius: BORDER_RADIUS.xl,
-    borderTopRightRadius: BORDER_RADIUS.xl,
-    marginTop: -BORDER_RADIUS.xl,
-    minHeight: 150,
+  captionBox: {
+    backgroundColor: COMIC_BOOK.captionBackground,
+    borderTopWidth: COMIC_BOOK.captionBorderWidth,
+    borderTopColor: COMIC_BOOK.captionBorderColor,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    minHeight: 80,
+  },
+  narrative: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: '500',
+    color: COMIC_BOOK.textColor,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  pageNumberContainer: {
+    position: 'absolute',
+    bottom: SPACING.xs,
+    right: SPACING.sm,
   },
   pageNumber: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: SPACING.sm,
-  },
-  narrative: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: '500',
-    color: COLORS.text,
-    lineHeight: 32,
+    color: COMIC_BOOK.pageNumberColor,
+    fontWeight: '600',
   },
 });

@@ -3,3 +3,10 @@ export { analyzeChildPhotos, buildCharacterConsistentPrompt } from './characterC
 export { generateStoryNarrative, regeneratePageNarrative, validateStoryContent } from './storyGenerator';
 export { generateStoryImage, generateStoryImages, validateImagePrompt } from './imageGenerator';
 export { createCompleteStory, regeneratePageIllustration } from './storyOrchestrator';
+export {
+  generateThemePreview,
+  generateStylePreview,
+  generateMissingThemePreviews,
+  generateMissingStylePreviews,
+  generateAllMissingPreviews,
+} from './previewImageGenerator';

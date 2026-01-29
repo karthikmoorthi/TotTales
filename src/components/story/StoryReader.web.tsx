@@ -1,8 +1,18 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Dimensions, Pressable, Platform } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  interpolate,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Story, StoryPage as StoryPageType } from '@/types';
-import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
+import { COLORS, FONT_SIZES, SPACING, COMIC_BOOK } from '@/utils/constants';
 import { StoryPage } from './StoryPage';
 import { PageIndicator } from './PageIndicator';
 
@@ -20,9 +30,17 @@ export function StoryReader({
   onRegeneratePage,
 }: StoryReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [regeneratingPageId, setRegeneratingPageId] = useState<string | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+
+  const flipProgress = useSharedValue(0);
+
+  const allPages = [
+    { type: 'cover' as const, data: story },
+    ...pages.map((p) => ({ type: 'story' as const, data: p })),
+    { type: 'end' as const, data: story },
+  ];
 
   const handleRegenerate = async (pageId: string) => {
     if (!onRegeneratePage) return;
@@ -34,50 +52,179 @@ export function StoryReader({
     }
   };
 
-  const allPages = [
-    { type: 'cover', data: story },
-    ...pages.map((p) => ({ type: 'story', data: p })),
-    { type: 'end', data: story },
-  ];
+  const goToNextPage = useCallback(() => {
+    if (isAnimating || currentPage >= allPages.length - 1) return;
 
-  const goToPage = (index: number) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
-    }
-    setCurrentPage(index);
-  };
+    setIsAnimating(true);
+    flipProgress.value = withTiming(
+      1,
+      {
+        duration: COMIC_BOOK.flipDuration,
+        easing: Easing.inOut(Easing.ease),
+      },
+      (finished) => {
+        if (finished) {
+          runOnJS(setCurrentPage)(currentPage + 1);
+          flipProgress.value = 0;
+          runOnJS(setIsAnimating)(false);
+        }
+      }
+    );
+  }, [currentPage, isAnimating, allPages.length]);
 
-  const handleScroll = (e: any) => {
-    const offsetX = e.nativeEvent.contentOffset.x;
-    const page = Math.round(offsetX / SCREEN_WIDTH);
-    if (page !== currentPage) {
-      setCurrentPage(page);
-    }
-  };
+  const goToPrevPage = useCallback(() => {
+    if (isAnimating || currentPage <= 0) return;
 
-  const renderPageContent = (page: any, index: number) => {
+    setIsAnimating(true);
+    flipProgress.value = withTiming(
+      -1,
+      {
+        duration: COMIC_BOOK.flipDuration,
+        easing: Easing.inOut(Easing.ease),
+      },
+      (finished) => {
+        if (finished) {
+          runOnJS(setCurrentPage)(currentPage - 1);
+          flipProgress.value = 0;
+          runOnJS(setIsAnimating)(false);
+        }
+      }
+    );
+  }, [currentPage, isAnimating]);
+
+  // Handle keyboard navigation
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        goToPrevPage();
+      } else if (e.key === 'ArrowRight' || e.key === ' ') {
+        goToNextPage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goToNextPage, goToPrevPage]);
+
+  // Calculate book dimensions
+  const bookWidth = Math.min(SCREEN_WIDTH * COMIC_BOOK.widthPercent, 500);
+  const bookHeight = bookWidth / COMIC_BOOK.aspectRatio;
+  const maxHeight = SCREEN_HEIGHT * 0.75;
+  const finalHeight = Math.min(bookHeight, maxHeight);
+  const finalWidth = finalHeight * COMIC_BOOK.aspectRatio;
+
+  // Animated styles for page flip
+  const currentPageStyle = useAnimatedStyle(() => {
+    const rotateY = interpolate(
+      flipProgress.value,
+      [-1, 0, 1],
+      [0, 0, -90]
+    );
+    const opacity = interpolate(
+      flipProgress.value,
+      [-1, -0.5, 0, 0.5, 1],
+      [0, 0, 1, 1, 0]
+    );
+
+    return {
+      transform: [
+        { perspective: 1000 },
+        { rotateY: `${rotateY}deg` },
+      ],
+      opacity,
+      backfaceVisibility: 'hidden' as const,
+    };
+  });
+
+  const nextPageStyle = useAnimatedStyle(() => {
+    const rotateY = interpolate(
+      flipProgress.value,
+      [0, 1],
+      [90, 0]
+    );
+    const opacity = interpolate(
+      flipProgress.value,
+      [0, 0.5, 1],
+      [0, 0, 1]
+    );
+
+    return {
+      transform: [
+        { perspective: 1000 },
+        { rotateY: `${rotateY}deg` },
+      ],
+      opacity,
+      backfaceVisibility: 'hidden' as const,
+    };
+  });
+
+  const prevPageStyle = useAnimatedStyle(() => {
+    const rotateY = interpolate(
+      flipProgress.value,
+      [-1, 0],
+      [0, -90]
+    );
+    const opacity = interpolate(
+      flipProgress.value,
+      [-1, -0.5, 0],
+      [1, 0, 0]
+    );
+
+    return {
+      transform: [
+        { perspective: 1000 },
+        { rotateY: `${rotateY}deg` },
+      ],
+      opacity,
+      backfaceVisibility: 'hidden' as const,
+    };
+  });
+
+  const renderPageContent = (pageIndex: number) => {
+    if (pageIndex < 0 || pageIndex >= allPages.length) return null;
+    const page = allPages[pageIndex];
+
     if (page.type === 'cover') {
       return (
-        <View style={[styles.pageWrapper, { width: SCREEN_WIDTH }]}>
-          <View style={styles.coverPage}>
-            <View style={styles.coverContent}>
-              <Text style={styles.coverTitle}>{story.title}</Text>
-              <Text style={styles.coverSubtitle}>A personalized story</Text>
-              <Text style={styles.swipeHint}>Click arrows or swipe to read →</Text>
-            </View>
+        <View style={styles.coverPage}>
+          {story.cover_image_url ? (
+            <>
+              <Image
+                source={{ uri: story.cover_image_url }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.7)']}
+                style={styles.coverGradient}
+              />
+            </>
+          ) : (
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primaryDark]}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          <View style={styles.coverContent}>
+            <Text style={styles.coverTitle}>{story.title}</Text>
+            <Text style={styles.coverSubtitle}>A TotTales Story</Text>
           </View>
+          <Text style={styles.swipeHint}>Click arrows or use keyboard</Text>
         </View>
       );
     }
 
     if (page.type === 'end') {
       return (
-        <View style={[styles.pageWrapper, { width: SCREEN_WIDTH }]}>
-          <View style={styles.endPage}>
-            <View style={styles.endContent}>
-              <Text style={styles.endTitle}>The End</Text>
-              <Text style={styles.endSubtitle}>{story.title}</Text>
-            </View>
+        <View style={styles.endPage}>
+          <LinearGradient
+            colors={[COLORS.secondary, COLORS.secondaryDark]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.endContent}>
+            <Text style={styles.endTitle}>The End</Text>
+            <View style={styles.endDivider} />
+            <Text style={styles.endSubtitle}>{story.title}</Text>
           </View>
         </View>
       );
@@ -85,52 +232,67 @@ export function StoryReader({
 
     const storyPage = page.data as StoryPageType;
     return (
-      <View style={[styles.pageWrapper, { width: SCREEN_WIDTH }]}>
-        <StoryPage
-          page={storyPage}
-          isActive={currentPage === index}
-          onRegenerate={onRegeneratePage ? () => handleRegenerate(storyPage.id) : undefined}
-          isRegenerating={regeneratingPageId === storyPage.id}
-        />
-      </View>
+      <StoryPage
+        page={storyPage}
+        isActive={currentPage === pageIndex}
+        onRegenerate={onRegeneratePage ? () => handleRegenerate(storyPage.id) : undefined}
+        isRegenerating={regeneratingPageId === storyPage.id}
+      />
     );
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={styles.pager}
-      >
-        {allPages.map((page, index) => (
-          <View key={page.type === 'story' ? (page.data as StoryPageType).id : page.type}>
-            {renderPageContent(page, index)}
-          </View>
-        ))}
-      </ScrollView>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <View style={styles.bookContainer}>
+        <View
+          style={[
+            styles.book,
+            {
+              width: finalWidth,
+              height: finalHeight,
+            },
+          ]}
+        >
+          {/* Previous page (for backward flip) */}
+          {currentPage > 0 && (
+            <Animated.View style={[styles.pageContainer, prevPageStyle]}>
+              {renderPageContent(currentPage - 1)}
+            </Animated.View>
+          )}
 
+          {/* Current page */}
+          <Animated.View style={[styles.pageContainer, currentPageStyle]}>
+            {renderPageContent(currentPage)}
+          </Animated.View>
+
+          {/* Next page (for forward flip) */}
+          {currentPage < allPages.length - 1 && (
+            <Animated.View style={[styles.pageContainer, nextPageStyle]}>
+              {renderPageContent(currentPage + 1)}
+            </Animated.View>
+          )}
+        </View>
+      </View>
+
+      {/* Navigation arrows */}
       {currentPage > 0 && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.navButton, styles.navButtonLeft]}
-          onPress={() => goToPage(currentPage - 1)}
+          onPress={goToPrevPage}
         >
           <Text style={styles.navButtonText}>‹</Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
       {currentPage < allPages.length - 1 && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.navButton, styles.navButtonRight]}
-          onPress={() => goToPage(currentPage + 1)}
+          onPress={goToNextPage}
         >
           <Text style={styles.navButtonText}>›</Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
 
+      {/* Page indicator */}
       <View style={[styles.indicatorContainer, { bottom: insets.bottom + SPACING.md }]}>
         <PageIndicator total={allPages.length} current={currentPage} />
       </View>
@@ -139,52 +301,95 @@ export function StoryReader({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  pager: { flex: 1 },
-  pageWrapper: { flex: 1, height: SCREEN_HEIGHT },
-  coverPage: {
+  container: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.background,
+  },
+  bookContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: SPACING.xl,
   },
-  coverContent: { alignItems: 'center' },
+  book: {
+    backgroundColor: COMIC_BOOK.panelBackground,
+    borderWidth: COMIC_BOOK.panelBorderWidth,
+    borderColor: COMIC_BOOK.panelBorderColor,
+    borderRadius: COMIC_BOOK.panelBorderRadius,
+    overflow: 'hidden',
+    // Web shadow
+    shadowColor: COMIC_BOOK.shadowColor,
+    shadowOffset: COMIC_BOOK.shadowOffset,
+    shadowOpacity: COMIC_BOOK.shadowOpacity,
+    shadowRadius: COMIC_BOOK.shadowRadius,
+  },
+  pageContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  coverPage: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  coverGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  coverContent: {
+    alignItems: 'center',
+    zIndex: 1,
+  },
   coverTitle: {
-    fontSize: FONT_SIZES['4xl'],
+    fontSize: FONT_SIZES['3xl'],
     fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    paddingHorizontal: SPACING.md,
   },
   coverSubtitle: {
-    fontSize: FONT_SIZES.lg,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: SPACING['2xl'],
+    fontSize: FONT_SIZES.base,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
   swipeHint: {
-    fontSize: FONT_SIZES.base,
-    color: 'rgba(255, 255, 255, 0.6)',
+    position: 'absolute',
+    bottom: SPACING.lg,
+    fontSize: FONT_SIZES.sm,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
   },
   endPage: {
     flex: 1,
-    backgroundColor: COLORS.secondary,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: SPACING.xl,
+    overflow: 'hidden',
   },
-  endContent: { alignItems: 'center' },
+  endContent: {
+    alignItems: 'center',
+    zIndex: 1,
+  },
   endTitle: {
     fontSize: FONT_SIZES['4xl'],
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: SPACING.md,
+    fontStyle: 'italic',
+  },
+  endDivider: {
+    width: 60,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 2,
+    marginBottom: SPACING.md,
   },
   endSubtitle: {
     fontSize: FONT_SIZES.lg,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
+    paddingHorizontal: SPACING.lg,
   },
   indicatorContainer: {
     position: 'absolute',
@@ -195,16 +400,25 @@ const styles = StyleSheet.create({
   navButton: {
     position: 'absolute',
     top: '50%',
-    marginTop: -30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    marginTop: -25,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+    cursor: 'pointer',
   },
-  navButtonLeft: { left: SPACING.md },
-  navButtonRight: { right: SPACING.md },
-  navButtonText: { fontSize: 36, color: '#FFFFFF', fontWeight: '300' },
+  navButtonLeft: {
+    left: SPACING.sm,
+  },
+  navButtonRight: {
+    right: SPACING.sm,
+  },
+  navButtonText: {
+    fontSize: 28,
+    color: '#FFFFFF',
+    fontWeight: '300',
+  },
 });
