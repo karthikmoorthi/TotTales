@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { SelectionCard } from '@/components/ui';
 import { ArtStyle } from '@/types';
 import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
+import { getStylePreviewSource } from '@/utils/styleAssets';
 
 interface StyleSelectorProps {
   styles: ArtStyle[];
@@ -21,7 +22,7 @@ export function StyleSelector({
     <SelectionCard
       title={item.display_name}
       description={item.description || undefined}
-      imageUrl={item.preview_image_url}
+      imageSource={getStylePreviewSource(item.name, item.preview_image_url)}
       selected={item.id === selectedStyleId}
       onPress={() => onSelect(item.id)}
       style={componentStyles.card}

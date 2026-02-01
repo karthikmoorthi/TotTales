@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { SelectionCard } from '@/components/ui';
 import { Theme } from '@/types';
 import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
+import { getThemePreviewSource } from '@/utils/themeAssets';
 
 interface ThemeSelectorProps {
   themes: Theme[];
@@ -21,7 +22,7 @@ export function ThemeSelector({
     <SelectionCard
       title={item.display_name}
       description={item.description || undefined}
-      imageUrl={item.preview_image_url}
+      imageSource={getThemePreviewSource(item.name, item.preview_image_url)}
       selected={item.id === selectedThemeId}
       onPress={() => onSelect(item.id)}
       style={styles.card}

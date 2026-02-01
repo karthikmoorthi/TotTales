@@ -36,6 +36,7 @@ interface SelectionCardProps {
   title: string;
   description?: string;
   imageUrl?: string | null;
+  imageSource?: { uri: string } | number; // For local assets or remote URLs
   selected?: boolean;
   onPress: () => void;
   style?: ViewStyle;
@@ -45,12 +46,16 @@ export function SelectionCard({
   title,
   description,
   imageUrl,
+  imageSource,
   selected = false,
   onPress,
   style,
 }: SelectionCardProps) {
   // Get icon config based on title
   const iconConfig = THEME_ICONS[title] || STYLE_ICONS[title];
+
+  // Determine the image source to use
+  const resolvedImageSource = imageSource || (imageUrl ? { uri: imageUrl } : null);
 
   const renderPlaceholder = () => {
     if (iconConfig) {
@@ -78,9 +83,9 @@ export function SelectionCard({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      {imageUrl ? (
+      {resolvedImageSource ? (
         <Image
-          source={{ uri: imageUrl }}
+          source={resolvedImageSource}
           style={styles.image}
           contentFit="cover"
           transition={200}
