@@ -19,6 +19,16 @@ interface GeneratedImage {
   mimeType: string;
 }
 
+// Timeout wrapper for promises
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+    ),
+  ]);
+}
+
 /**
  * Generate an illustration for a story page using Gemini's image generation
  */
@@ -41,6 +51,8 @@ export async function generateStoryImage(
     `${sceneDescription}\n\nAdditional details: ${imagePrompt}`
   );
 
+  console.log('[ImageGenerator] Starting image generation...');
+
   // Use retry logic for API calls
   return retryWithBackoff(async () => {
     try {
@@ -52,14 +64,25 @@ export async function generateStoryImage(
         } as any,
       });
 
-      const response = await model.generateContent(fullPrompt);
+      console.log('[ImageGenerator] Calling Gemini API...');
+
+      // Add 60 second timeout for image generation
+      const response = await withTimeout(
+        model.generateContent(fullPrompt),
+        60000,
+        'Image generation timed out after 60 seconds'
+      );
+
       const result = response.response;
+      console.log('[ImageGenerator] Got response from Gemini');
 
       // Extract image from response
       const parts = result.candidates?.[0]?.content?.parts || [];
+      console.log('[ImageGenerator] Response parts count:', parts.length);
 
       for (const part of parts) {
         if ((part as any).inlineData?.data) {
+          console.log('[ImageGenerator] Image generated successfully');
           return {
             base64: (part as any).inlineData.data,
             mimeType: (part as any).inlineData.mimeType || 'image/png',
@@ -67,8 +90,10 @@ export async function generateStoryImage(
         }
       }
 
+      console.error('[ImageGenerator] No image in response. Parts:', JSON.stringify(parts).substring(0, 500));
       throw new Error('No image generated in response');
     } catch (error: any) {
+      console.error('[ImageGenerator] Error:', error.message);
       // Check if it's a content safety error
       if (error.message?.includes('SAFETY') || error.message?.includes('blocked')) {
         throw new Error('Image generation blocked by safety filters. Please try a different scene.');

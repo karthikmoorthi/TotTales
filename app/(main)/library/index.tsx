@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Platform,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -30,26 +33,36 @@ export default function LibraryScreen() {
     router.push(`/(main)/read/${storyId}`);
   };
 
+  const performDelete = async (storyId: string) => {
+    try {
+      await deleteStory.mutateAsync(storyId);
+    } catch (error) {
+      console.error('Error deleting story:', error);
+      if (Platform.OS === 'web') {
+        window.alert('Failed to delete story. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to delete story. Please try again.');
+      }
+    }
+  };
+
   const handleDeleteStory = (storyId: string, title: string) => {
-    Alert.alert(
-      'Delete Story',
-      `Are you sure you want to delete "${title}"? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteStory.mutateAsync(storyId);
-            } catch (error) {
-              console.error('Error deleting story:', error);
-              Alert.alert('Error', 'Failed to delete story. Please try again.');
-            }
+    // On native, show Alert for confirmation
+    // On web, the StoryListItem handles its own modal
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Delete Story',
+        `Are you sure you want to delete "${title}"? This cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => performDelete(storyId),
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const renderStory = ({ item }: { item: Story }) => (
@@ -57,6 +70,7 @@ export default function LibraryScreen() {
       story={item}
       onPress={() => handleOpenStory(item.id)}
       onDelete={() => handleDeleteStory(item.id, item.title)}
+      onConfirmDelete={() => performDelete(item.id)}
     />
   );
 
@@ -105,13 +119,29 @@ function StoryListItem({
   story,
   onPress,
   onDelete,
+  onConfirmDelete,
 }: {
   story: Story;
   onPress: () => void;
   onDelete: () => void;
+  onConfirmDelete: () => void;
 }) {
   const isGenerating = story.status === 'generating';
   const isFailed = story.status === 'failed';
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const handleDeletePress = () => {
+    if (Platform.OS === 'web') {
+      setShowDeleteModal(true);
+    } else {
+      onDelete();
+    }
+  };
+
+  const confirmDelete = () => {
+    setShowDeleteModal(false);
+    onConfirmDelete();
+  };
 
   return (
     <TouchableOpacity
@@ -159,13 +189,52 @@ function StoryListItem({
         )}
       </View>
 
-      <TouchableOpacity
+      <Pressable
         style={styles.deleteButton}
-        onPress={onDelete}
+        onPress={(e) => {
+          e.stopPropagation();
+          handleDeletePress();
+        }}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons name="trash-outline" size={20} color={COLORS.textMuted} />
-      </TouchableOpacity>
+      </Pressable>
+
+      {/* Web delete confirmation modal */}
+      {Platform.OS === 'web' && (
+        <Modal
+          visible={showDeleteModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDeleteModal(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowDeleteModal(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Delete Story</Text>
+              <Text style={styles.modalMessage}>
+                Are you sure you want to delete "{story.title}"? This cannot be undone.
+              </Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowDeleteModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.confirmDeleteButton]}
+                  onPress={confirmDelete}
+                >
+                  <Text style={styles.confirmDeleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Pressable>
+        </Modal>
+      )}
     </TouchableOpacity>
   );
 }
@@ -245,5 +314,54 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xl,
+    width: '80%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+  },
+  modalMessage: {
+    fontSize: FONT_SIZES.base,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.lg,
+    lineHeight: 22,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: SPACING.sm,
+  },
+  modalButton: {
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  cancelButton: {
+    backgroundColor: COLORS.surfaceSecondary,
+  },
+  cancelButtonText: {
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  confirmDeleteButton: {
+    backgroundColor: COLORS.error,
+  },
+  confirmDeleteButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
 });

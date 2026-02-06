@@ -131,6 +131,8 @@ export async function createCompleteStory(
 
       if (!pageRecord) continue;
 
+      console.log(`[StoryOrchestrator] Starting page ${i + 1}/${narrative.pages.length}`);
+
       onProgress?.({
         stage: 'illustrating',
         currentPage: i + 1,
@@ -147,27 +149,40 @@ export async function createCompleteStory(
         console.warn(`Invalid prompt for page ${i + 1}:`, promptValidation.reason);
       }
 
-      // Generate image
-      const image = await generateStoryImage({
-        artStyleModifier: artStyle.prompt_modifier,
-        characterDescription,
-        childName: child.name,
-        sceneDescription: pageNarrative.sceneDescription,
-        imagePrompt: pageNarrative.imagePrompt,
-      });
+      try {
+        // Generate image
+        console.log(`[StoryOrchestrator] Generating image for page ${i + 1}...`);
+        const image = await generateStoryImage({
+          artStyleModifier: artStyle.prompt_modifier,
+          characterDescription,
+          childName: child.name,
+          sceneDescription: pageNarrative.sceneDescription,
+          imagePrompt: pageNarrative.imagePrompt,
+        });
+        console.log(`[StoryOrchestrator] Image generated for page ${i + 1}`);
 
-      // Upload to storage
-      const imageUrl = await uploadStoryImage(story.id, pageNarrative.pageNumber, image.base64);
+        // Upload to storage
+        console.log(`[StoryOrchestrator] Uploading image for page ${i + 1}...`);
+        const imageUrl = await uploadStoryImage(story.id, pageNarrative.pageNumber, image.base64);
+        console.log(`[StoryOrchestrator] Image uploaded for page ${i + 1}: ${imageUrl}`);
 
-      // Update page with image
-      await updateStoryPage(pageRecord.id, {
-        image_url: imageUrl,
-        status: 'completed',
-      });
+        // Update page with image
+        await updateStoryPage(pageRecord.id, {
+          image_url: imageUrl,
+          status: 'completed',
+        });
+        console.log(`[StoryOrchestrator] Page ${i + 1} completed`);
 
-      // Set cover image from first page
-      if (i === 0) {
-        await updateStory(story.id, { cover_image_url: imageUrl });
+        // Set cover image from first page
+        if (i === 0) {
+          await updateStory(story.id, { cover_image_url: imageUrl });
+        }
+      } catch (pageError: any) {
+        console.error(`[StoryOrchestrator] Error on page ${i + 1}:`, pageError.message);
+        // Mark this specific page as failed but continue with others
+        await updateStoryPage(pageRecord.id, { status: 'failed' });
+        // Re-throw to mark entire story as failed
+        throw pageError;
       }
     }
 
