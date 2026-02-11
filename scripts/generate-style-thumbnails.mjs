@@ -16,7 +16,12 @@ try {
   mkdirSync(OUTPUT_DIR, { recursive: true });
 } catch (e) {}
 
-const GEMINI_API_KEY = 'AIzaSyDjWwfAuDhPLGMCa3eKwF0JGbXpyiguiig';
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.error('❌ Error: EXPO_PUBLIC_GEMINI_API_KEY environment variable is not set');
+  console.error('   Run: export EXPO_PUBLIC_GEMINI_API_KEY=your_api_key');
+  process.exit(1);
+}
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Base scene for all art styles

@@ -6,10 +6,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
-// Configuration
-const SUPABASE_URL = 'https://hdwyyadvescgvhwbmtnw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhkd3l5YWR2ZXNjZ3Zod2JtdG53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4ODI2OTEsImV4cCI6MjA4NDQ1ODY5MX0.hxo3mJEGp1LfmcHjqjOkn-7sF5zgYtGRQlsvnx-FjS4';
-const GEMINI_API_KEY = 'AIzaSyDjWwfAuDhPLGMCa3eKwF0JGbXpyiguiig';
+// Configuration - uses environment variables
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !GEMINI_API_KEY) {
+  console.error('❌ Error: Missing required environment variables');
+  console.error('   Required: EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, EXPO_PUBLIC_GEMINI_API_KEY');
+  console.error('   Run: source .env (or export them manually)');
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
