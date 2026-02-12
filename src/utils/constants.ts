@@ -2,7 +2,7 @@
 export const APP_NAME = 'TotTales';
 
 // Story Generation
-export const DEFAULT_PAGE_COUNT = 6;
+export const DEFAULT_PAGE_COUNT = 10;
 export const MAX_REGENERATION_ATTEMPTS = 3;
 export const MAX_PHOTOS_PER_CHILD = 5;
 
@@ -25,6 +25,7 @@ export const STORAGE_BUCKETS = {
 // Generation Stages
 export const GENERATION_STAGES = {
   ANALYZING: 'analyzing',
+  OUTLINING: 'outlining',
   WRITING: 'writing',
   ILLUSTRATING: 'illustrating',
   FINALIZING: 'finalizing',

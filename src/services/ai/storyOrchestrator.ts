@@ -1,4 +1,5 @@
 import { analyzeChildPhotos } from './characterConsistency';
+import { generateStoryOutline } from './storyOutlineGenerator';
 import { generateStoryNarrative, validateStoryContent } from './storyGenerator';
 import { generateStoryImage, validateImagePrompt } from './imageGenerator';
 import { uploadStoryImage } from '@/services/supabase/storage';
@@ -11,7 +12,7 @@ import {
   getArtStyleById,
   getChildById,
 } from '@/services/supabase/database';
-import { GenerationProgress, StoryNarrative, StoryPageInsert } from '@/types';
+import { GenerationProgress, StoryNarrative, StoryPageInsert, StoryType } from '@/types';
 import { DEFAULT_PAGE_COUNT, STORY_STATUS, PAGE_STATUS } from '@/utils/constants';
 import { imageToBase64 } from '@/utils/helpers';
 
@@ -20,6 +21,7 @@ interface StoryCreationInput {
   childId: string;
   themeId: string;
   artStyleId: string;
+  storyType?: StoryType;
 }
 
 type ProgressCallback = (progress: GenerationProgress) => void;
@@ -31,7 +33,7 @@ export async function createCompleteStory(
   input: StoryCreationInput,
   onProgress?: ProgressCallback
 ): Promise<string> {
-  const { userId, childId, themeId, artStyleId } = input;
+  const { userId, childId, themeId, artStyleId, storyType = 'adventure' } = input;
 
   // Stage 1: Load data and analyze photos
   onProgress?.({
@@ -79,7 +81,7 @@ export async function createCompleteStory(
   const story = await createStory({
     user_id: userId,
     child_id: childId,
-    title: `${child.name}'s Adventure`, // Temporary title
+    title: `${child.name}'s Adventure`, // Temporary title, will be updated
     theme_id: themeId,
     art_style_id: artStyleId,
     status: 'generating',
@@ -87,12 +89,30 @@ export async function createCompleteStory(
   });
 
   try {
-    // Stage 2: Generate story narrative
+    // Stage 2: Generate story outline (Rule of Three structure)
+    onProgress?.({
+      stage: 'outlining',
+      currentPage: 0,
+      totalPages: DEFAULT_PAGE_COUNT,
+      message: 'Creating story structure...',
+    });
+
+    console.log('[StoryOrchestrator] Generating outline with story type:', storyType);
+    const outline = await generateStoryOutline({
+      childName: child.name,
+      childAge: child.age_years ?? undefined,
+      characterDescription,
+      theme,
+      storyType,
+    });
+    console.log('[StoryOrchestrator] Outline generated:', outline.title);
+
+    // Stage 3: Generate story narrative using the outline
     onProgress?.({
       stage: 'writing',
       currentPage: 0,
       totalPages: DEFAULT_PAGE_COUNT,
-      message: 'Crafting the story...',
+      message: 'Writing your story...',
     });
 
     const narrative = await generateStoryNarrative({
@@ -101,6 +121,7 @@ export async function createCompleteStory(
       childGender: child.gender ?? undefined,
       theme,
       characterDescription,
+      outline,
       pageCount: DEFAULT_PAGE_COUNT,
     });
 

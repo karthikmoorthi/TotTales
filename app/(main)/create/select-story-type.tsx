@@ -3,33 +3,31 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStoryCreation } from '@/contexts/StoryCreationContext';
-import { useThemes } from '@/hooks';
-import { Header, Button, LoadingSpinner } from '@/components/ui';
-import { ThemeSelector } from '@/components/creation';
+import { Header, Button } from '@/components/ui';
+import { StoryTypeSelector } from '@/components/creation';
 import { COLORS, SPACING } from '@/utils/constants';
 
-export default function SelectThemeScreen() {
+export default function SelectStoryTypeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { state, setTheme } = useStoryCreation();
-  const { data: themes, isLoading } = useThemes();
+  const { state, setStoryType } = useStoryCreation();
 
-  // Redirect if no child selected
-  if (!state.childId) {
+  // Redirect if no theme selected
+  if (!state.childId || !state.themeId) {
     return <Redirect href="/(main)/create/upload-photo" />;
   }
 
   const handleContinue = () => {
-    if (state.themeId) {
-      router.push('/(main)/create/select-story-type');
+    if (state.storyType) {
+      router.push('/(main)/create/select-style');
     }
   };
 
   return (
     <View style={styles.container}>
       <Header
-        title="Choose Theme"
-        subtitle="Step 2 of 4"
+        title="Story Type"
+        subtitle="Step 3 of 4"
         showBack
         onBack={() => router.back()}
       />
@@ -39,22 +37,17 @@ export default function SelectThemeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {isLoading ? (
-          <LoadingSpinner message="Loading themes..." />
-        ) : (
-          <ThemeSelector
-            themes={themes || []}
-            selectedThemeId={state.themeId}
-            onSelect={setTheme}
-          />
-        )}
+        <StoryTypeSelector
+          selectedType={state.storyType}
+          onSelect={setStoryType}
+        />
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
         <Button
           title="Continue"
           onPress={handleContinue}
-          disabled={!state.themeId}
+          disabled={!state.storyType}
         />
       </View>
     </View>

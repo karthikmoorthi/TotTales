@@ -15,10 +15,15 @@ const STAGE_INFO = {
     title: 'Analyzing Photos',
     description: 'Understanding your child\'s features...',
   },
+  outlining: {
+    icon: 'document-text-outline' as const,
+    title: 'Crafting Story Structure',
+    description: 'Creating the narrative arc...',
+  },
   writing: {
     icon: 'create-outline' as const,
     title: 'Writing Story',
-    description: 'Crafting a magical adventure...',
+    description: 'Bringing the adventure to life...',
   },
   illustrating: {
     icon: 'brush-outline' as const,
@@ -94,27 +99,29 @@ export function GenerationProgress({ progress }: GenerationProgressProps) {
 }
 
 function getStageOrder(stage: string): number {
-  const order = ['analyzing', 'writing', 'illustrating', 'finalizing'];
+  const order = ['analyzing', 'outlining', 'writing', 'illustrating', 'finalizing'];
   return order.indexOf(stage);
 }
 
 function calculateOverallProgress(progress: GenerationProgressType): number {
-  const stageWeights = {
-    analyzing: 10,
-    writing: 20,
+  const stageWeights: Record<string, number> = {
+    analyzing: 5,
+    outlining: 10,
+    writing: 15,
     illustrating: 60,
     finalizing: 10,
   };
 
-  const stageStarts = {
+  const stageStarts: Record<string, number> = {
     analyzing: 0,
-    writing: 10,
+    outlining: 5,
+    writing: 15,
     illustrating: 30,
     finalizing: 90,
   };
 
-  const currentStageWeight = stageWeights[progress.stage];
-  const currentStageStart = stageStarts[progress.stage];
+  const currentStageWeight = stageWeights[progress.stage] || 10;
+  const currentStageStart = stageStarts[progress.stage] || 0;
 
   if (progress.stage === 'illustrating' && progress.totalPages > 0) {
     const pageProgress = (progress.currentPage - 1) / progress.totalPages;
