@@ -9,15 +9,11 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Image as RNImage,
 } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MAX_PHOTOS_PER_CHILD } from '@/utils/constants';
-
-// Use RN Image on web (better blob URL support), expo-image on native
-const Image = Platform.OS === 'web' ? RNImage : ExpoImage;
 
 interface PhotoUploaderProps {
   photos: string[];
@@ -180,7 +176,7 @@ export function PhotoUploader({
   // Render single photo card
   const renderSinglePhotoCard = () => (
     <View style={styles.singlePhotoCard}>
-      <Image source={{ uri: photos[0] }} style={styles.cardImage} resizeMode="cover" />
+      <Image source={{ uri: photos[0] }} style={styles.cardImage} contentFit="cover" />
 
       {/* Add more button */}
       {photos.length < maxPhotos && (
@@ -221,7 +217,7 @@ export function PhotoUploader({
               getStackedStyle(index, displayPhotos.length),
             ]}
           >
-            <Image source={{ uri }} style={styles.cardImage} resizeMode="cover" />
+            <Image source={{ uri }} style={styles.cardImage} contentFit="cover" />
           </View>
         ))}
 
@@ -286,7 +282,7 @@ export function PhotoUploader({
             >
               {photos.map((uri, index) => (
                 <View key={index} style={styles.managementPhotoContainer}>
-                  <Image source={{ uri }} style={styles.managementPhoto} resizeMode="cover" />
+                  <Image source={{ uri }} style={styles.managementPhoto} contentFit="cover" />
 
                   {/* Primary badge */}
                   {index === 0 && (
