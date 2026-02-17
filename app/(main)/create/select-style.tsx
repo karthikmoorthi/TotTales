@@ -19,12 +19,12 @@ export default function SelectStyleScreen() {
   const createStory = useCreateStory();
 
   // Redirect if missing required state
-  if (!state.childId || !state.themeId || !state.storyType) {
+  if (!state.childId || !state.themeId) {
     return <Redirect href="/(main)/create/upload-photo" />;
   }
 
   const handleCreateStory = async () => {
-    if (!state.artStyleId || !user || !state.storyType) return;
+    if (!state.artStyleId || !user) return;
 
     try {
       const storyId = await createStory.mutateAsync({
@@ -32,7 +32,6 @@ export default function SelectStyleScreen() {
         childId: state.childId!,
         themeId: state.themeId!,
         artStyleId: state.artStyleId,
-        storyType: state.storyType,
       });
 
       // Reset creation state
@@ -54,7 +53,7 @@ export default function SelectStyleScreen() {
     <View style={styles.container}>
       <Header
         title="Choose Art Style"
-        subtitle="Step 4 of 4"
+        subtitle="Step 3 of 3"
         showBack
         onBack={() => router.back()}
       />

@@ -93,7 +93,7 @@ export default function UploadPhotoScreen() {
     <View style={styles.container}>
       <Header
         title="Add Your Child"
-        subtitle="Step 1 of 4"
+        subtitle="Step 1 of 3"
         showBack
         onBack={() => router.back()}
       />

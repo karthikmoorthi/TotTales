@@ -27,7 +27,6 @@ export interface StoryCreationState {
   childPhotos: string[];
   themeId: string | null;
   artStyleId: string | null;
-  storyType: StoryType | null;
   characterDescription: string | null;
 }
 
@@ -66,7 +65,6 @@ export type RootStackParamList = {
   '(main)/index': undefined;
   '(main)/create/upload-photo': undefined;
   '(main)/create/select-theme': undefined;
-  '(main)/create/select-story-type': undefined;
   '(main)/create/select-style': undefined;
   '(main)/create/generating': { storyId: string };
   '(main)/read/[storyId]': { storyId: string };

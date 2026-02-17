@@ -21,7 +21,7 @@ export default function SelectThemeScreen() {
 
   const handleContinue = () => {
     if (state.themeId) {
-      router.push('/(main)/create/select-story-type');
+      router.push('/(main)/create/select-style');
     }
   };
 
@@ -29,7 +29,7 @@ export default function SelectThemeScreen() {
     <View style={styles.container}>
       <Header
         title="Choose Theme"
-        subtitle="Step 2 of 4"
+        subtitle="Step 2 of 3"
         showBack
         onBack={() => router.back()}
       />

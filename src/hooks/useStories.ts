@@ -5,7 +5,7 @@ import {
   deleteStory,
 } from '@/services/supabase/database';
 import { createCompleteStory, regeneratePageIllustration } from '@/services/ai';
-import { GenerationProgress, StoryType } from '@/types';
+import { GenerationProgress } from '@/types';
 import { useState } from 'react';
 
 export function useUserStories(userId: string | undefined) {
@@ -42,7 +42,6 @@ export function useCreateStory() {
       childId: string;
       themeId: string;
       artStyleId: string;
-      storyType?: StoryType;
     }) => {
       return createCompleteStory(input, setProgress);
     },

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { StoryCreationState, StoryType } from '@/types';
+import { StoryCreationState } from '@/types';
 
 interface StoryCreationContextType {
   state: StoryCreationState;
@@ -7,7 +7,6 @@ interface StoryCreationContextType {
   setCharacterDescription: (description: string) => void;
   setTheme: (themeId: string) => void;
   setArtStyle: (artStyleId: string) => void;
-  setStoryType: (storyType: StoryType) => void;
   reset: () => void;
   isComplete: () => boolean;
 }
@@ -18,7 +17,6 @@ const initialState: StoryCreationState = {
   childPhotos: [],
   themeId: null,
   artStyleId: null,
-  storyType: null,
   characterDescription: null,
 };
 
@@ -57,13 +55,6 @@ export function StoryCreationProvider({ children }: { children: React.ReactNode 
     }));
   }, []);
 
-  const setStoryType = useCallback((storyType: StoryType) => {
-    setState((prev) => ({
-      ...prev,
-      storyType,
-    }));
-  }, []);
-
   const reset = useCallback(() => {
     setState(initialState);
   }, []);
@@ -74,8 +65,7 @@ export function StoryCreationProvider({ children }: { children: React.ReactNode 
       state.childName &&
       state.childPhotos.length > 0 &&
       state.themeId &&
-      state.artStyleId &&
-      state.storyType
+      state.artStyleId
     );
   }, [state]);
 
@@ -85,7 +75,6 @@ export function StoryCreationProvider({ children }: { children: React.ReactNode 
     setCharacterDescription,
     setTheme,
     setArtStyle,
-    setStoryType,
     reset,
     isComplete,
   };

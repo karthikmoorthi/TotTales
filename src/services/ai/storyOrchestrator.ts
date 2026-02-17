@@ -21,10 +21,20 @@ interface StoryCreationInput {
   childId: string;
   themeId: string;
   artStyleId: string;
-  storyType?: StoryType;
 }
 
 type ProgressCallback = (progress: GenerationProgress) => void;
+
+// Story types for random selection
+const STORY_TYPES: StoryType[] = ['adventure', 'emotional', 'learning'];
+
+/**
+ * Randomly select a story type for variety
+ */
+function getRandomStoryType(): StoryType {
+  const randomIndex = Math.floor(Math.random() * STORY_TYPES.length);
+  return STORY_TYPES[randomIndex];
+}
 
 /**
  * Orchestrate the complete story generation process
@@ -33,7 +43,11 @@ export async function createCompleteStory(
   input: StoryCreationInput,
   onProgress?: ProgressCallback
 ): Promise<string> {
-  const { userId, childId, themeId, artStyleId, storyType = 'adventure' } = input;
+  const { userId, childId, themeId, artStyleId } = input;
+
+  // Randomly select story type for surprise/delight
+  const storyType = getRandomStoryType();
+  console.log('[StoryOrchestrator] Randomly selected story type:', storyType);
 
   // Stage 1: Load data and analyze photos
   onProgress?.({
