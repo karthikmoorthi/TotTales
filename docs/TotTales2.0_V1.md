@@ -289,17 +289,38 @@ The child must demonstrate their defined traits throughout:
 - Use the defined catchphrase on specified pages
 - Show physical mannerisms consistently (twirling hair, bouncing, etc.)
 
-**d) Cross-Page References**
-Each page (except page 1) must reference something from a previous page:
-- "The feather Maya found earlier..."
+**d) Cross-Page Continuity (Balanced Approach)**
+Create a connected story using a MIX of subtle and explicit approaches.
+
+**PAGES 2-8: Prefer subtle, but verbal isn't banned**
+
+✅ Subtle approaches (preferred):
+- Visual continuity: "The purple flowers swayed" (same garden from page 1)
+- Atmospheric echoes: Same weather, lighting, mood carries through
+- Object presence: "Her pocket felt warm" (feather present but not named)
+- Spatial logic: Movement through world makes sense
+
+⚠️ Light verbal OK if natural:
+- "The sparkly feather tickled her fingers" (natural, not forced)
+- Brief mentions that don't feel like "remember when"
+
+❌ Avoid heavy-handed callbacks:
+- "Maya remembered the feather from before..."
 - "Just like the toad had said..."
-- "Maya remembered the song..."
-- "Back in the garden where she started..."
+- "Using what she learned earlier..."
+
+**PAGE 9 (Breakthrough): Explicit verbal callbacks ENCOURAGED**
+
+This is where setups pay off — be clear and explicit:
+- "Maya's hand brushed her pocket. The feather!"
+- "Then she remembered what Shelly said..."
+- The reader should clearly see the connection land.
 
 **e) Motif Usage**
-Use the Architect's recurring phrases on their specified pages:
-- Don't paraphrase - use the EXACT phrase
-- Place it naturally in dialogue or narration
+Recurring phrases should feel like character voice, not forced repetition:
+- Place in moments of similar emotion (not mechanically)
+- Can vary naturally ("One more try!" → "Just one more try!")
+- Should feel like personality, not a writing device
 
 ### System Prompt
 
@@ -436,11 +457,11 @@ Evaluate the draft against professional picture book standards.
 
 | Check | Question |
 |-------|----------|
-| `elementsPayoff` | Do ALL setup elements from the outline appear on their payoff pages? |
-| `settingsConsistent` | Are setting details maintained across pages using the same location? |
+| `elementsPayoff` | Do setup elements appear on their payoff pages (especially breakthrough)? |
+| `settingsConsistent` | Are setting details (visual/atmospheric) maintained consistently? |
 | `characterConsistent` | Does the child show their defined traits throughout (not just once)? |
-| `crossReferences` | Does each page (2-10) reference something from a previous page? |
-| `motifsUsed` | Are recurring phrases used on their specified pages? |
+| `continuityFeels` | Does the story feel connected? (visual cues, atmosphere, spatial logic) |
+| `motifsNatural` | Do recurring phrases feel like character voice (not forced)? |
 
 ### Output Structure
 
@@ -573,18 +594,29 @@ COHERENCE (all must pass for coherencePass = true) - NEW
   - Are physical mannerisms shown consistently?
   Child should feel like the SAME character throughout.
 
-□ crossReferences
-  For pages 2-10, check if each page references something from earlier:
-  - "The [thing] from before..."
-  - "Just like when..."
-  - "Maya remembered..."
-  - Callback to earlier event, character, or object
-  If ANY page (2-10) has NO cross-reference, FAIL.
+□ continuityFeels
+  Does the story feel like ONE connected journey?
 
-□ motifsUsed
-  For each motif in outline.storyElements.motifs:
-  - Is the EXACT phrase used on ALL specified pages?
-  - Don't accept paraphrases - must be exact.
+  PAGES 2-8: Check for subtle continuity (preferred) OR natural verbal:
+  - Visual/atmospheric continuity (same setting details, weather, mood)
+  - Spatial logic (movement through world makes sense)
+  - Object presence (setup elements felt even if not explicitly named)
+  - Light verbal OK if natural ("The sparkly feather tickled her fingers")
+
+  PAGE 9 (Breakthrough): Check for EXPLICIT payoff:
+  - Setup elements should be clearly called back
+  - Reader should unmistakably see the connection
+
+  PASS if pages 2-8 feel connected (subtle or verbal) AND page 9 has clear payoff.
+  FAIL only if pages feel disconnected or breakthrough is unclear.
+
+□ motifsNatural
+  Do recurring phrases feel organic to the character?
+  - Should appear in emotionally similar moments
+  - Natural variation is OK ("One more try!" ≈ "Just one more try!")
+  - Should feel like personality, not mechanical repetition
+
+  PASS if motifs enhance character voice. FAIL if they feel forced/robotic.
 
 ═══════════════════════════════════════════════════════════════
 FINAL VERDICT
@@ -710,22 +742,31 @@ Without explicit coherence tracking, AI-generated stories often feel like **10 d
 }
 ```
 
-### Coherence in Action
+### Coherence in Action (Subtle Approach)
 
 **Page 2 (Setup):**
 > "Look!" Maya skipped through the purple wildflowers. Something sparkly caught her eye. A beautiful feather! Maya tucked it in her pocket. "I'll keep you safe," she whispered.
 
-**Page 7 (Callback):**
-> Maya tapped her chin, thinking hard. She felt the feather in her pocket. What if...? No, not yet. She needed another idea.
+**Page 5 (Visual continuity - no explicit callback):**
+> The gray clouds grumbled overhead. Maya's pocket felt warm against her leg. She tapped her chin, thinking. "What if I try singing?"
 
-**Page 9 (Payoff):**
-> Then Maya remembered Shelly's words: "Slow and steady." She pulled out the sparkly feather. "What if I try... tickling you?" SWOOSH! The feather danced across the cloud. The grumpy cloud... GIGGLED!
+*Note: The feather isn't mentioned by name, but "pocket felt warm" creates subtle presence.*
+
+**Page 7 (Atmospheric echo):**
+> Cold wind whooshed past. Maya hugged herself tight. Below, she could just see the purple wildflowers — so far away now.
+
+*Note: Visual callback to the meadow creates longing/connection without explicit "remember when."*
+
+**Page 9 (Explicit payoff - OK here):**
+> Maya's hand brushed her pocket. The feather! She pulled it out, sparkles dancing. "What if I try... tickling you?" SWOOSH! The feather danced across the cloud. The grumpy cloud... GIGGLED!
+
+*Note: Breakthrough moment can have explicit callback — this is where payoff lands.*
 
 **Why this works:**
-- Feather introduced (p2) → referenced (p7) → used meaningfully (p9)
-- Character shows "curious" (asks questions), "determined" (keeps trying)
-- Motif "What if I try...?" used consistently
-- Cross-references connect pages into one story
+- Feather presence felt subtly (warm pocket) before explicit use
+- Visual/atmospheric echoes (purple wildflowers seen from above) create connection
+- Character mannerisms consistent (taps chin when thinking, skips when happy)
+- Explicit callback reserved for the BREAKTHROUGH — feels earned, not repetitive
 
 ---
 
