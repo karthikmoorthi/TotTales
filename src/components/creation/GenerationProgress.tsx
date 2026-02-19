@@ -18,12 +18,22 @@ const STAGE_INFO = {
   outlining: {
     icon: 'document-text-outline' as const,
     title: 'Crafting Story Structure',
-    description: 'Creating the narrative arc...',
+    description: 'The Architect is designing the narrative arc...',
   },
   writing: {
     icon: 'create-outline' as const,
     title: 'Writing Story',
-    description: 'Bringing the adventure to life...',
+    description: 'The Wordsmith is bringing the adventure to life...',
+  },
+  reviewing: {
+    icon: 'eye-outline' as const,
+    title: 'Reviewing Draft',
+    description: 'The Critic is evaluating the story quality...',
+  },
+  revising: {
+    icon: 'pencil-outline' as const,
+    title: 'Polishing Story',
+    description: 'The Wordsmith is refining based on feedback...',
   },
   illustrating: {
     icon: 'brush-outline' as const,
@@ -99,15 +109,18 @@ export function GenerationProgress({ progress }: GenerationProgressProps) {
 }
 
 function getStageOrder(stage: string): number {
-  const order = ['analyzing', 'outlining', 'writing', 'illustrating', 'finalizing'];
+  const order = ['analyzing', 'outlining', 'writing', 'reviewing', 'revising', 'illustrating', 'finalizing'];
   return order.indexOf(stage);
 }
 
 function calculateOverallProgress(progress: GenerationProgressType): number {
+  // Weights adjusted for agentic loop (reviewing/revising may repeat)
   const stageWeights: Record<string, number> = {
     analyzing: 5,
-    outlining: 10,
-    writing: 15,
+    outlining: 8,
+    writing: 10,
+    reviewing: 3,
+    revising: 4,
     illustrating: 60,
     finalizing: 10,
   };
@@ -115,7 +128,9 @@ function calculateOverallProgress(progress: GenerationProgressType): number {
   const stageStarts: Record<string, number> = {
     analyzing: 0,
     outlining: 5,
-    writing: 15,
+    writing: 13,
+    reviewing: 23,
+    revising: 26,
     illustrating: 30,
     finalizing: 90,
   };
@@ -126,6 +141,12 @@ function calculateOverallProgress(progress: GenerationProgressType): number {
   if (progress.stage === 'illustrating' && progress.totalPages > 0) {
     const pageProgress = (progress.currentPage - 1) / progress.totalPages;
     return currentStageStart + pageProgress * currentStageWeight;
+  }
+
+  // For revision rounds, show progress within the review/revise cycle
+  if ((progress.stage === 'reviewing' || progress.stage === 'revising') && progress.revision !== undefined) {
+    const revisionBonus = progress.revision * 2; // Small bump for each revision round
+    return Math.min(currentStageStart + currentStageWeight / 2 + revisionBonus, 29);
   }
 
   return currentStageStart + currentStageWeight / 2;

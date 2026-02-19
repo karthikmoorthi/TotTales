@@ -1,6 +1,5 @@
 import { analyzeChildPhotos } from './characterConsistency';
-import { generateStoryOutline } from './storyOutlineGenerator';
-import { generateStoryNarrative, validateStoryContent } from './storyGenerator';
+import { runAgenticStoryLoop } from './agenticStoryLoop';
 import { generateStoryImage, validateImagePrompt } from './imageGenerator';
 import { uploadStoryImage } from '@/services/supabase/storage';
 import {
@@ -12,9 +11,8 @@ import {
   getArtStyleById,
   getChildById,
 } from '@/services/supabase/database';
-import { GenerationProgress, StoryNarrative, StoryPageInsert, StoryType } from '@/types';
-import { DEFAULT_PAGE_COUNT, STORY_STATUS, PAGE_STATUS } from '@/utils/constants';
-import { imageToBase64 } from '@/utils/helpers';
+import { GenerationProgress, StoryPageInsert, StoryType } from '@/types';
+import { DEFAULT_PAGE_COUNT } from '@/utils/constants';
 
 interface StoryCreationInput {
   userId: string;
@@ -103,47 +101,34 @@ export async function createCompleteStory(
   });
 
   try {
-    // Stage 2: Generate story outline (Rule of Three structure)
-    onProgress?.({
-      stage: 'outlining',
-      currentPage: 0,
-      totalPages: DEFAULT_PAGE_COUNT,
-      message: 'Creating story structure...',
-    });
+    // Stage 2-4: Run Agentic Story Loop (Architect → Wordsmith → Critic with revisions)
+    console.log('[StoryOrchestrator] Starting Agentic Story Loop...');
+    console.log('[StoryOrchestrator] Story type:', storyType);
 
-    console.log('[StoryOrchestrator] Generating outline with story type:', storyType);
-    const outline = await generateStoryOutline({
-      childName: child.name,
-      childAge: child.age_years ?? undefined,
-      characterDescription,
-      theme,
-      storyType,
-    });
-    console.log('[StoryOrchestrator] Outline generated:', outline.title);
+    const agenticResult = await runAgenticStoryLoop(
+      {
+        childName: child.name,
+        childAge: child.age_years ?? undefined,
+        characterDescription,
+        theme,
+        artStyle,
+        storyType,
+      },
+      onProgress // Pass through progress callback - agentic loop handles outlining, writing, reviewing, revising
+    );
 
-    // Stage 3: Generate story narrative using the outline
-    onProgress?.({
-      stage: 'writing',
-      currentPage: 0,
-      totalPages: DEFAULT_PAGE_COUNT,
-      message: 'Writing your story...',
-    });
+    const { outline, narrative, evaluation, revisionCount, wasApproved } = agenticResult;
 
-    const narrative = await generateStoryNarrative({
-      childName: child.name,
-      childAge: child.age_years ?? undefined,
-      childGender: child.gender ?? undefined,
-      theme,
-      characterDescription,
-      outline,
-      pageCount: DEFAULT_PAGE_COUNT,
+    console.log('[StoryOrchestrator] Agentic loop complete');
+    console.log('[StoryOrchestrator] Title:', narrative.title);
+    console.log('[StoryOrchestrator] Revisions:', revisionCount);
+    console.log('[StoryOrchestrator] Approved:', wasApproved);
+    console.log('[StoryOrchestrator] Evaluation:', {
+      structure: evaluation.structurePass,
+      emotional: evaluation.emotionalPass,
+      language: evaluation.languagePass,
+      coherence: evaluation.coherencePass,
     });
-
-    // Validate content
-    const validation = validateStoryContent(narrative);
-    if (!validation.valid) {
-      console.warn('Story validation issues:', validation.issues);
-    }
 
     // Update story title
     await updateStory(story.id, { title: narrative.title });

@@ -6,6 +6,10 @@ export const DEFAULT_PAGE_COUNT = 10;
 export const MAX_REGENERATION_ATTEMPTS = 3;
 export const MAX_PHOTOS_PER_CHILD = 5;
 
+// Agentic Story Loop (TotTales 2.0)
+export const MAX_REVISION_ROUNDS = 2; // Cap revision loops to prevent infinite retries
+export const MIN_LANGUAGE_CHECKS_PASS = 3; // Language checks: 3 of 4 must pass
+
 // Image Settings
 export const IMAGE_COMPRESSION_QUALITY = 0.8;
 export const IMAGE_MAX_WIDTH = 1024;
@@ -27,6 +31,8 @@ export const GENERATION_STAGES = {
   ANALYZING: 'analyzing',
   OUTLINING: 'outlining',
   WRITING: 'writing',
+  REVIEWING: 'reviewing',
+  REVISING: 'revising',
   ILLUSTRATING: 'illustrating',
   FINALIZING: 'finalizing',
 } as const;
