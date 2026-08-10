@@ -7,6 +7,8 @@ import { Session } from '@supabase/supabase-js';
 import { AuthUser } from '@/types';
 import {
   signInWithGoogle,
+  signInWithEmailPassword,
+  signUpWithEmailPassword,
   signOut as supabaseSignOut,
   getSession,
   getCurrentUser,
@@ -52,7 +54,10 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  signIn: () => Promise<void>;
+  googleConfigured: boolean;
+  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -66,6 +71,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Store raw nonce for Supabase verification
   const rawNonceRef = useRef<string>('');
   const [hashedNonce, setHashedNonce] = useState<string>('');
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+  const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+  const googleConfigured = Boolean(
+    googleClientId && (Platform.OS === 'web' || googleIosClientId || googleAndroidClientId)
+  );
 
   // Generate nonce on mount
   useEffect(() => {
@@ -96,10 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Pass the HASHED nonce to Google via extraParams
   // This overrides expo-auth-session's auto-generated nonce
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  const [, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: googleClientId || 'google-oauth-not-configured.apps.googleusercontent.com',
+    iosClientId: googleIosClientId || 'google-oauth-not-configured.apps.googleusercontent.com',
+    androidClientId: googleAndroidClientId || 'google-oauth-not-configured.apps.googleusercontent.com',
     extraParams: hashedNonce ? { nonce: hashedNonce } : undefined,
   });
 
@@ -164,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Pass RAW nonce to Supabase - it will hash it and compare with id_token
-          const { user: authUser, session: authSession } = await signInWithGoogle(
+          const { session: authSession } = await signInWithGoogle(
             id_token,
             rawNonce
           );
@@ -193,7 +204,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     handleGoogleResponse();
   }, [response]);
 
-  const signIn = useCallback(async () => {
+  const beginGoogleSignIn = useCallback(async () => {
+    if (!googleConfigured) {
+      throw new Error('Google sign-in is not configured yet.');
+    }
     try {
       // Store the RAW nonce before redirect (for web)
       // This is what Supabase needs to verify the id_token
@@ -206,7 +220,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearStoredNonce();
       throw error;
     }
-  }, [promptAsync]);
+  }, [googleConfigured, promptAsync]);
+
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const { session: authSession } = await signInWithEmailPassword(email, password);
+      setSession(authSession);
+      setUser(await getCurrentUser());
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const { session: authSession } = await signUpWithEmailPassword(email, password);
+      if (!authSession) return true;
+      setSession(authSession);
+      setUser(await getCurrentUser());
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -227,7 +265,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     isLoading,
     isAuthenticated: !!session && !!user,
-    signIn,
+    googleConfigured,
+    signInWithGoogle: beginGoogleSignIn,
+    signInWithEmail,
+    signUpWithEmail,
     signOut,
   };
 

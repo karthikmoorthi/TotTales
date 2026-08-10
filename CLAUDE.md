@@ -1,4 +1,4 @@
-# TotTales - Project Context for Claude
+# TotTales - Project Context
 
 ## Overview
 TotTales is a React Native mobile app that creates personalized AI-generated storybooks where toddlers are the heroes. Parents upload photos of their child, select a theme and art style, and AI generates a complete illustrated storybook.
@@ -6,7 +6,7 @@ TotTales is a React Native mobile app that creates personalized AI-generated sto
 ## Tech Stack
 - **Frontend**: React Native with Expo SDK 52, Expo Router for navigation
 - **Backend**: Supabase (Auth, PostgreSQL Database, Storage)
-- **AI**: Google Gemini API (narrative generation + image generation)
+- **AI**: OpenAI behind authenticated Supabase Edge Functions
 - **State**: React Query for server state, React Context for app state
 
 ## Project Structure
@@ -25,7 +25,7 @@ TotTales/
 │   │   └── story/         # StoryReader, StoryPage (has .web.tsx variant)
 │   ├── services/
 │   │   ├── supabase/      # client, auth, storage, database
-│   │   └── ai/            # gemini, storyGenerator, imageGenerator, storyOrchestrator
+│   │   └── ai/            # OpenAI client, agents, image generation, orchestration
 │   ├── hooks/             # useStories, useChildren, useThemesAndStyles
 │   ├── contexts/          # AuthContext, StoryCreationContext
 │   ├── types/             # TypeScript types, database schema
@@ -56,15 +56,15 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=
-EXPO_PUBLIC_GEMINI_API_KEY=
+# OPENAI_API_KEY is a Supabase server secret, never an Expo variable.
 ```
 
 ## Story Generation Flow
 1. User uploads 1-5 photos of child
-2. Gemini analyzes photos → generates character description
+2. The server-side OpenAI provider analyzes photos → generates character description
 3. User selects theme and art style
-4. Gemini generates 6-page story narrative with scene descriptions
-5. Gemini generates illustration for each page
+4. The agent loop generates a 10-page narrative with scene descriptions
+5. GPT Image generates an illustration for each page
 6. Images uploaded to Supabase Storage
 7. Story marked complete, user can read
 
@@ -84,7 +84,7 @@ npx expo start --clear  # Clear cache and start
 ## Known Limitations
 - Android OAuth requires SHA-1 fingerprint (not configured yet)
 - Web has limited testing (OAuth redirect may need adjustment)
-- Image generation depends on Gemini 2.0 Flash availability
+- AI generation remains disabled until the OpenAI secret and Edge Functions are configured
 
 ## Debugging Tips
 - Check Expo server logs for bundling errors

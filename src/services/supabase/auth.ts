@@ -21,6 +21,32 @@ export async function signInWithGoogle(idToken: string, nonce?: string): Promise
   return { user: data.user, session: data.session };
 }
 
+/** Sign in without depending on an external OAuth provider. */
+export async function signInWithEmailPassword(
+  email: string,
+  password: string
+): Promise<{ user: User; session: Session }> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  if (!data.user || !data.session) throw new Error('Sign in failed');
+
+  await upsertProfile(data.user);
+  return { user: data.user, session: data.session };
+}
+
+/** Create an account. A session may be absent when email confirmation is enabled. */
+export async function signUpWithEmailPassword(
+  email: string,
+  password: string
+): Promise<{ user: User; session: Session | null }> {
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  if (!data.user) throw new Error('Account creation failed');
+
+  if (data.session) await upsertProfile(data.user);
+  return { user: data.user, session: data.session };
+}
+
 /**
  * Sign out the current user
  */

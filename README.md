@@ -1,144 +1,81 @@
 # TotTales
 
-A React Native mobile app that creates personalized AI-generated storybooks where toddlers are the heroes.
+An Expo/React Native app for creating personalized, illustrated children's stories.
 
-## Features
+## Current revival status
 
-- **Google OAuth Authentication** - Secure sign-in with Google
-- **Photo Upload** - Add photos of your child for personalized illustrations
-- **Theme Selection** - Choose from adventures like Space, Underwater, Enchanted Forest, and more
-- **Art Style Selection** - Pick from watercolor, cartoon, classic storybook, and other styles
-- **AI Story Generation** - Stories crafted by Google Gemini with your child as the protagonist
-- **AI Illustrations** - Each page features a unique illustration with your child
-- **Swipeable Reader** - Intuitive page-by-page reading experience
-- **Regenerate Pages** - Not happy with an illustration? Regenerate it!
-- **Story Library** - Access all your created stories anytime
+- Supabase email/password authentication is supported; Google sign-in is optional.
+- Story and image requests go through authenticated Supabase Edge Functions.
+- No AI provider key is included in the mobile or web bundle.
+- OpenAI is the only planned AI provider. The functions return a clear `503` until `OPENAI_API_KEY` is configured.
+- The app creates a ten-page story through an Architect → Wordsmith → Critic loop, then generates page illustrations using the child's reference photos.
 
-## Tech Stack
+## Stack
 
-- **Frontend**: React Native with Expo (SDK 52)
-- **Backend**: Supabase (Auth, Database, Storage)
-- **AI**: Google Gemini (narrative + image generation)
-- **State Management**: Zustand + React Query
-- **Navigation**: Expo Router
+- Expo SDK 52 and Expo Router
+- React Native / React Native Web
+- Supabase Auth, Postgres, Storage, and Edge Functions
+- OpenAI Responses API for text/vision and GPT Image for illustrations
+- TanStack Query for server state
 
-## Prerequisites
+## Local setup
 
-- Node.js 18+ and npm/yarn
-- Expo CLI (`npm install -g expo-cli`)
-- Supabase account (free tier works)
-- Google Cloud Console project (for OAuth + Gemini API)
+1. Install dependencies:
 
-## Setup
+   ```bash
+   npm install
+   ```
 
-### 1. Install Dependencies
+2. Copy the environment template:
 
-```bash
-npm install
-```
+   ```bash
+   cp .env.example .env.local
+   ```
 
-### 2. Configure Supabase
+3. Add the Supabase project URL and an active publishable key. Google client IDs are optional.
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Run the migrations:
-   - Go to SQL Editor in Supabase Dashboard
-   - Run `supabase/migrations/001_initial_schema.sql`
-   - Run `supabase/migrations/002_seed_data.sql`
-3. Configure Google OAuth:
-   - Go to Authentication > Providers > Google
-   - Enable Google provider
-   - Add your Google OAuth credentials
+4. Apply the migrations in `supabase/migrations` in order. Existing installations should apply `004_revival_baseline.sql`; it restores the catalog and buckets idempotently and hardens the original policies.
 
-### 3. Configure Google Cloud
+5. Deploy both authenticated Edge Functions:
 
-1. Create a project at [Google Cloud Console](https://console.cloud.google.com)
-2. Enable these APIs:
-   - Generative Language API (Gemini)
-3. Create OAuth 2.0 credentials:
-   - Create credentials for iOS, Android, and Web
-4. Create an API key for Gemini
+   ```bash
+   supabase functions deploy openai-text
+   supabase functions deploy openai-image
+   ```
 
-### 4. Environment Variables
+6. Configure the OpenAI key as a server secret—never as an `EXPO_PUBLIC_*` value:
 
-Copy `.env.example` to `.env` and fill in your credentials:
+   ```bash
+   supabase secrets set OPENAI_API_KEY=...
+   ```
+
+   Optional server-only overrides are `OPENAI_TEXT_MODEL` and `OPENAI_IMAGE_MODEL`.
+
+7. Start the app:
+
+   ```bash
+   npm start
+   ```
+
+## Verification
 
 ```bash
-cp .env.example .env
+npm run typecheck
+npm run lint
+npx expo export --platform web
 ```
 
-Required variables:
-- `EXPO_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-- `EXPO_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth Web client ID
-- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` - Google OAuth iOS client ID
-- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` - Google OAuth Android client ID
-- `EXPO_PUBLIC_GEMINI_API_KEY` - Google Gemini API key
+## Important privacy boundary
 
-### 5. Add App Icons
+Child photos are stored in the private `child-photos` bucket. During generation, up to three photos are downloaded by the signed-in app and sent through an authenticated Edge Function to OpenAI for character analysis and illustration reference. Do not launch publicly until the privacy policy, parental consent language, retention/deletion behavior, and generated story-image visibility have been reviewed.
 
-Replace the placeholder files in `/assets`:
-- `icon.png` (1024x1024) - App icon
-- `splash.png` (1284x2778) - Splash screen
-- `adaptive-icon.png` (1024x1024) - Android adaptive icon
-- `favicon.png` (32x32) - Web favicon
+## Project map
 
-### 6. Run the App
+- `app/` — screens and navigation
+- `src/services/ai/` — provider-neutral orchestration and OpenAI function clients
+- `src/services/supabase/` — auth, database, and storage access
+- `supabase/functions/` — server-side OpenAI calls
+- `supabase/migrations/` — schema, catalog, storage, and policy setup
+- `docs/STORY_GENERATION.md` — generation architecture
 
-```bash
-# Start development server
-npm start
-
-# Run on iOS simulator
-npm run ios
-
-# Run on Android emulator
-npm run android
-```
-
-## Project Structure
-
-```
-TotTales/
-├── app/                          # Expo Router screens
-│   ├── (auth)/                   # Authentication screens
-│   ├── (main)/                   # Main app screens
-│   │   ├── create/               # Story creation flow
-│   │   ├── read/                 # Story reading
-│   │   └── library/              # User's story library
-│   └── _layout.tsx               # Root layout
-├── src/
-│   ├── components/
-│   │   ├── ui/                   # Reusable UI components
-│   │   ├── story/                # Story reader components
-│   │   └── creation/             # Story creation components
-│   ├── services/
-│   │   ├── supabase/             # Supabase client & operations
-│   │   └── ai/                   # Gemini API integration
-│   ├── hooks/                    # Custom React hooks
-│   ├── contexts/                 # React contexts
-│   ├── types/                    # TypeScript types
-│   └── utils/                    # Utility functions
-└── supabase/
-    └── migrations/               # Database migrations
-```
-
-## Database Schema
-
-- **profiles** - User accounts (extends Supabase auth)
-- **children** - Child profiles (story protagonists)
-- **themes** - Available story themes
-- **art_styles** - Visual styles for illustrations
-- **stories** - Generated storybooks
-- **story_pages** - Individual pages with text and images
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is private and not licensed for public use.
+OpenAI references: [Responses API](https://developers.openai.com/api/reference/responses), [image generation guide](https://developers.openai.com/api/docs/guides/image-generation), and [GPT Image 2](https://developers.openai.com/api/docs/models/gpt-image-2).

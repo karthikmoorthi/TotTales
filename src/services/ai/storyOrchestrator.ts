@@ -1,4 +1,4 @@
-import { analyzeChildPhotos } from './characterConsistency';
+import { analyzeChildPhotos, loadChildPhotoInputs } from './characterConsistency';
 import { runAgenticStoryLoop } from './agenticStoryLoop';
 import { generateStoryImage, validateImagePrompt } from './imageGenerator';
 import { uploadStoryImage } from '@/services/supabase/storage';
@@ -10,6 +10,7 @@ import {
   getThemeById,
   getArtStyleById,
   getChildById,
+  getStoryWithPages,
 } from '@/services/supabase/database';
 import { GenerationProgress, StoryPageInsert, StoryType } from '@/types';
 import { DEFAULT_PAGE_COUNT } from '@/utils/constants';
@@ -89,6 +90,14 @@ export async function createCompleteStory(
     characterDescription = `A young child named ${child.name}`;
   }
 
+  const photoUrls = [
+    child.primary_photo_url,
+    ...(child.additional_photos || []),
+  ].filter((url): url is string => Boolean(url));
+  const referencePhotos = photoUrls.length
+    ? await loadChildPhotoInputs(photoUrls)
+    : [];
+
   // Create story record
   const story = await createStory({
     user_id: userId,
@@ -117,7 +126,7 @@ export async function createCompleteStory(
       onProgress // Pass through progress callback - agentic loop handles outlining, writing, reviewing, revising
     );
 
-    const { outline, narrative, evaluation, revisionCount, wasApproved } = agenticResult;
+    const { narrative, evaluation, revisionCount, wasApproved } = agenticResult;
 
     console.log('[StoryOrchestrator] Agentic loop complete');
     console.log('[StoryOrchestrator] Title:', narrative.title);
@@ -178,6 +187,7 @@ export async function createCompleteStory(
           childName: child.name,
           sceneDescription: pageNarrative.sceneDescription,
           imagePrompt: pageNarrative.imagePrompt,
+          referencePhotoBase64: referencePhotos.map((photo) => photo.base64),
         });
         console.log(`[StoryOrchestrator] Image generated for page ${i + 1}`);
 
@@ -232,9 +242,7 @@ export async function regeneratePageIllustration(
   pageId: string,
   onProgress?: ProgressCallback
 ): Promise<void> {
-  const [storyData] = await Promise.all([
-    import('@/services/supabase/database').then((m) => m.getStoryWithPages(storyId)),
-  ]);
+  const storyData = await getStoryWithPages(storyId);
 
   if (!storyData) throw new Error('Story not found');
 
@@ -250,6 +258,14 @@ export async function regeneratePageIllustration(
   ]);
 
   if (!child || !artStyle) throw new Error('Missing story data');
+
+  const photoUrls = [
+    child.primary_photo_url,
+    ...(child.additional_photos || []),
+  ].filter((url): url is string => Boolean(url));
+  const referencePhotos = photoUrls.length
+    ? await loadChildPhotoInputs(photoUrls)
+    : [];
 
   onProgress?.({
     stage: 'illustrating',
@@ -268,6 +284,7 @@ export async function regeneratePageIllustration(
     childName: child.name,
     sceneDescription: page.image_prompt || '',
     imagePrompt: page.image_prompt || '',
+    referencePhotoBase64: referencePhotos.map((photo) => photo.base64),
   });
 
   // Upload new image

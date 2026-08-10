@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
+import { useStoryCreation } from '@/contexts/StoryCreationContext';
+import { useCreateChild } from '@/hooks/useChildren';
+import { Header, Button } from '@/components/ui';
+import { PhotoUploader, ChildForm } from '@/components/creation';
+import { COLORS, SPACING } from '@/utils/constants';
 
 // Cross-platform alert helper
 const showAlert = (title: string, message: string) => {
@@ -9,14 +17,6 @@ const showAlert = (title: string, message: string) => {
     Alert.alert(title, message);
   }
 };
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/AuthContext';
-import { useStoryCreation } from '@/contexts/StoryCreationContext';
-import { useCreateChild } from '@/hooks/useChildren';
-import { Header, Button } from '@/components/ui';
-import { PhotoUploader, ChildForm } from '@/components/creation';
-import { COLORS, SPACING } from '@/utils/constants';
 
 interface ChildFormData {
   name: string;
