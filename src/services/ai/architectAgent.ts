@@ -8,7 +8,7 @@
  * 4. Providing visual hints for illustration consistency
  */
 
-import { generateText } from './gemini';
+import { generateText } from './openai';
 import {
   EnhancedOutline,
   StoryType,

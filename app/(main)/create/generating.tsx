@@ -1,9 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useCreateStory } from '@/hooks/useStories';
+import { useAuth } from '@/contexts/AuthContext';
+import { useStoryCreation } from '@/contexts/StoryCreationContext';
 import { GenerationProgress } from '@/components/creation';
 import { Button } from '@/components/ui';
 import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
@@ -11,12 +13,32 @@ import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
 export default function GeneratingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { error: hasError } = useLocalSearchParams<{ error?: string }>();
-  const { progress, isPending, isError, error } = useCreateStory();
+  const { childId, themeId, artStyleId } = useLocalSearchParams<{
+    childId?: string;
+    themeId?: string;
+    artStyleId?: string;
+  }>();
+  const { user } = useAuth();
+  const { reset } = useStoryCreation();
+  const { progress, mutate, isError, error } = useCreateStory();
+  const startedRef = useRef(false);
 
-  const showError = hasError === 'true' || isError;
+  useEffect(() => {
+    if (startedRef.current || !user || !childId || !themeId || !artStyleId) return;
+    startedRef.current = true;
 
-  if (showError) {
+    mutate(
+      { userId: user.id, childId, themeId, artStyleId },
+      {
+        onSuccess: (storyId) => {
+          reset();
+          router.replace(`/(main)/read/${storyId}`);
+        },
+      }
+    );
+  }, [artStyleId, childId, mutate, reset, router, themeId, user]);
+
+  if (isError || !childId || !themeId || !artStyleId) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.errorContent}>
@@ -40,20 +62,13 @@ export default function GeneratingScreen() {
   if (progress) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => router.replace('/(main)')}
-        >
-          <Ionicons name="close" size={28} color={COLORS.text} />
-        </TouchableOpacity>
-
         <View style={styles.content}>
           <GenerationProgress progress={progress} />
         </View>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
           <Text style={styles.footerText}>
-            This may take a few minutes. Feel free to wait here or check back later.
+            This may take a few minutes. Keep this screen open until your story is finished.
           </Text>
         </View>
       </View>
@@ -78,16 +93,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 60,
-    right: SPACING.lg,
-    zIndex: 10,
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   content: {
     flex: 1,

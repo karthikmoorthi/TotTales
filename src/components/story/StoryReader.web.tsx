@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -70,7 +70,7 @@ export function StoryReader({
         }
       }
     );
-  }, [currentPage, isAnimating, allPages.length]);
+  }, [currentPage, isAnimating, allPages.length, flipProgress]);
 
   const goToPrevPage = useCallback(() => {
     if (isAnimating || currentPage <= 0) return;
@@ -90,7 +90,7 @@ export function StoryReader({
         }
       }
     );
-  }, [currentPage, isAnimating]);
+  }, [currentPage, isAnimating, flipProgress]);
 
   // Handle keyboard navigation
   React.useEffect(() => {

@@ -9,7 +9,7 @@
  * 5. Providing specific, actionable feedback when issues found
  */
 
-import { generateText } from './gemini';
+import { generateText } from './openai';
 import {
   EnhancedOutline,
   StoryNarrative,
@@ -18,7 +18,6 @@ import {
   CriticIssueType,
 } from '@/types';
 import { safeJsonParse } from '@/utils/helpers';
-import { MIN_LANGUAGE_CHECKS_PASS } from '@/utils/constants';
 
 export interface CriticInput {
   outline: EnhancedOutline;
@@ -270,13 +269,14 @@ Return ONLY valid JSON. No markdown, no explanation.`;
     cleanedResponse = cleanedResponse.slice(0, -3);
   }
 
-  // Default evaluation (approved with no notes)
+  // Fail closed if the model returns malformed JSON. Treating a parser failure
+  // as approval can publish a story the Critic never actually evaluated.
   const defaultEvaluation: CriticEvaluation = {
-    approved: true,
-    structurePass: true,
-    emotionalPass: true,
-    languagePass: true,
-    coherencePass: true,
+    approved: false,
+    structurePass: false,
+    emotionalPass: false,
+    languagePass: false,
+    coherencePass: false,
     editorNotes: [],
   };
 
@@ -362,11 +362,11 @@ function formatNarrativeForCritic(narrative: StoryNarrative): string {
  */
 function validateAndFixEvaluation(parsed: CriticEvaluation): CriticEvaluation {
   const evaluation: CriticEvaluation = {
-    approved: typeof parsed.approved === 'boolean' ? parsed.approved : true,
-    structurePass: typeof parsed.structurePass === 'boolean' ? parsed.structurePass : true,
-    emotionalPass: typeof parsed.emotionalPass === 'boolean' ? parsed.emotionalPass : true,
-    languagePass: typeof parsed.languagePass === 'boolean' ? parsed.languagePass : true,
-    coherencePass: typeof parsed.coherencePass === 'boolean' ? parsed.coherencePass : true,
+    approved: typeof parsed.approved === 'boolean' ? parsed.approved : false,
+    structurePass: typeof parsed.structurePass === 'boolean' ? parsed.structurePass : false,
+    emotionalPass: typeof parsed.emotionalPass === 'boolean' ? parsed.emotionalPass : false,
+    languagePass: typeof parsed.languagePass === 'boolean' ? parsed.languagePass : false,
+    coherencePass: typeof parsed.coherencePass === 'boolean' ? parsed.coherencePass : false,
     editorNotes: [],
   };
 

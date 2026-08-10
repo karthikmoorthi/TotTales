@@ -1,4 +1,4 @@
-import { generateWithImages } from './gemini';
+import { generateWithImages } from './openai';
 import { imageToBase64 } from '@/utils/helpers';
 import { getSignedUrl } from '@/services/supabase/storage';
 import { STORAGE_BUCKETS } from '@/utils/constants';
@@ -20,6 +20,34 @@ function extractStoragePath(url: string): string | null {
 }
 
 /**
+ * Load child photos for server-side multimodal AI calls. Keeping this helper in
+ * one place ensures private storage URLs are signed before the app downloads
+ * them and avoids duplicating photo handling in the story orchestrator.
+ */
+export async function loadChildPhotoInputs(
+  photoUris: string[],
+  limit: number = 3
+): Promise<{ base64: string; mimeType: string }[]> {
+  return Promise.all(
+    photoUris.slice(0, limit).map(async (uri) => {
+      let imageUri = uri;
+
+      if (isSupabaseStorageUrl(uri)) {
+        const path = extractStoragePath(uri);
+        if (path) {
+          imageUri = await getSignedUrl(STORAGE_BUCKETS.CHILD_PHOTOS, path, 300);
+        }
+      }
+
+      return {
+        base64: await imageToBase64(imageUri),
+        mimeType: 'image/jpeg',
+      };
+    })
+  );
+}
+
+/**
  * Analyze photos and generate a detailed character description
  * This description is used to maintain consistency across generated images
  */
@@ -30,24 +58,7 @@ export async function analyzeChildPhotos(
   childGender?: string
 ): Promise<string> {
   // Convert photos to base64, handling both local URIs and Supabase URLs
-  const images = await Promise.all(
-    photoUris.map(async (uri) => {
-      let imageUri = uri;
-
-      // If it's a Supabase storage URL, get a signed URL for private bucket access
-      if (isSupabaseStorageUrl(uri)) {
-        const path = extractStoragePath(uri);
-        if (path) {
-          imageUri = await getSignedUrl(STORAGE_BUCKETS.CHILD_PHOTOS, path, 300); // 5 min expiry
-        }
-      }
-
-      return {
-        base64: await imageToBase64(imageUri),
-        mimeType: 'image/jpeg',
-      };
-    })
-  );
+  const images = await loadChildPhotoInputs(photoUris);
 
   const prompt = `You are helping create a children's storybook. Analyze these photos of a child and provide a detailed character description that can be used to maintain consistency when generating illustrations.
 

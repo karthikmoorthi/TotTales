@@ -1,62 +1,26 @@
-# TotTales Development Progress
+# TotTales revival status
 
-## Session: January 22, 2026
+## Completed locally
 
-### Completed
-- [x] Google OAuth login with Supabase (fixed nonce mismatch issue)
-- [x] Database trigger fix (`public.profiles` schema path)
-- [x] Photo upload working on web (replaced expo-file-system with fetch/FileReader)
-- [x] Child profile creation with photo analysis
-- [x] Theme and art style selection flow
-- [x] AI story generation with Gemini API
-- [x] **First successful E2E story generation!**
+- Removed the Gemini SDK, API-key path, scripts, and preview-generation admin screen.
+- Added authenticated, server-side OpenAI text and image Edge Functions.
+- Added reference-photo image editing for visual consistency.
+- Added email/password authentication and made Google OAuth optional.
+- Fixed generation navigation so the progress screen owns the running job.
+- Replaced handwritten database types with types generated from the live project.
+- Added lint configuration and repaired TypeScript errors.
+- Added an idempotent recovery migration for seed data, buckets, RLS, function permissions, and missing indexes.
 
-### Key Fixes Applied
+## External setup still required
 
-| Issue | Root Cause | Solution |
-|-------|------------|----------|
-| Nonce mismatch on login | Supabase expects raw nonce, Google gets hashed | Hash nonce for Google, raw for Supabase, persist in sessionStorage for web |
-| Database error on signup | Trigger couldn't find `profiles` table | Changed to `public.profiles` in trigger function |
-| Photo upload fails on web | `expo-file-system` not available on web | Use `fetch()` + `FileReader` for web platform |
-| Gemini model not found | `gemini-1.5-*` models retired | Switched to `gemini-2.0-flash-lite` |
-| "Image not valid" error | Private bucket URLs not accessible | Added signed URL support (5-min expiry) |
-| API quota exceeded | Free tier limits hit | Enabled pay-as-you-go billing ($10/month budget) |
+- Explicit approval to apply `004_revival_baseline.sql` to the live Supabase project.
+- An OpenAI API key stored as a Supabase secret, followed by Edge Function deployment.
+- Review or recreate Google OAuth client IDs if Google sign-in is desired.
+- Enable Supabase leaked-password protection in the Auth dashboard.
 
-### Configuration Notes
-- **Gemini API:** Billing enabled, budget set to $10/month
-- **Supabase:** `child-photos` bucket is private (using signed URLs)
-- **Models used:**
-  - Text/Vision: `gemini-2.0-flash-lite`
-  - Image generation: `gemini-2.0-flash-exp`
+## Pre-launch work
 
-### Git Commits
-```
-f5055a4 Fix AI integration and secure photo access
-48bceb9 Fix web platform compatibility issues
-d2e7623 Initial commit: TotTales MVP foundation
-```
-
-### Areas for Improvement (Next Session)
-- [ ] UI/UX polish and styling
-- [ ] Better error handling with user-friendly messages
-- [ ] Loading states and progress indicators
-- [ ] Story reader experience improvements
-- [ ] Image generation quality tuning
-- [ ] Performance optimization
-- [ ] iOS/Android native testing
-- [ ] Add ability to view/manage existing stories in library
-
-### Known Limitations
-- Image compression skipped on web (ImageManipulator not supported)
-- Alert dialogs use `window.alert()` on web (native Alert not supported)
-- Gemini 2.0 Flash models will be retired March 3, 2026 (plan migration to 2.5)
-
----
-
-## Quick Start (for next session)
-```bash
-cd /Users/karthikeyan/Documents/TotTales
-npm start  # Start Expo dev server
-```
-
-Test URL: http://localhost:8081
+- Upgrade from Expo SDK 52 after the revival build is stable.
+- Move the complete multi-minute generation job off the device into a durable server job.
+- Make generated story images private or add an intentional sharing model.
+- Add parental consent, privacy policy, retention/deletion controls, cost limits, tests, CI, and production observability.

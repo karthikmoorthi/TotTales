@@ -10,7 +10,7 @@
  * 6. Revising based on Critic feedback when provided
  */
 
-import { generateText } from './gemini';
+import { generateText } from './openai';
 import {
   EnhancedOutline,
   StoryNarrative,

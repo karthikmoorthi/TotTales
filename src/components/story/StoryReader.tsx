@@ -71,7 +71,7 @@ export function StoryReader({
         }
       }
     );
-  }, [currentPage, isAnimating, allPages.length]);
+  }, [currentPage, isAnimating, allPages.length, flipProgress]);
 
   const goToPrevPage = useCallback(() => {
     if (isAnimating || currentPage <= 0) return;
@@ -91,7 +91,7 @@ export function StoryReader({
         }
       }
     );
-  }, [currentPage, isAnimating]);
+  }, [currentPage, isAnimating, flipProgress]);
 
   const swipeGesture = Gesture.Pan()
     .onEnd((event) => {

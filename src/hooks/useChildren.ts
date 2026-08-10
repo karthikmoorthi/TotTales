@@ -7,7 +7,6 @@ import {
 } from '@/services/supabase/database';
 import { uploadChildPhoto } from '@/services/supabase/storage';
 import { analyzeChildPhotos } from '@/services/ai';
-import { ChildInsert } from '@/types';
 
 export function useUserChildren(userId: string | undefined) {
   return useQuery({
