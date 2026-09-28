@@ -85,7 +85,10 @@ export default function UploadPhotoScreen() {
       router.push('/(main)/create/select-theme');
     } catch (error) {
       console.error('Error creating child:', error);
-      showAlert('Error', 'Failed to save child profile. Please try again.');
+      const detail = error instanceof Error && error.message
+        ? error.message
+        : 'Please try again.';
+      showAlert('Failed to Save Child Profile', detail);
     }
   };
 

@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { IMAGE_COMPRESSION_QUALITY, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT } from './constants';
+import { convertHeicToJpeg } from './heic';
 
 async function normalizeWebImage(uri: string): Promise<Blob> {
   const response = await fetch(uri);
@@ -14,9 +15,17 @@ async function normalizeWebImage(uri: string): Promise<Blob> {
   try {
     bitmap = await createImageBitmap(source);
   } catch {
-    throw new Error(
-      'This photo format is not supported. Please use a JPEG, PNG, GIF, or WebP image.'
-    );
+    try {
+      // Chrome cannot decode iPhone HEIC/HEIF photos natively. Convert them
+      // entirely in the browser so family photos never leave the device until
+      // the normalized JPEG is ready for the user's Supabase storage.
+      const jpeg = await convertHeicToJpeg(source, IMAGE_COMPRESSION_QUALITY);
+      bitmap = await createImageBitmap(jpeg);
+    } catch {
+      throw new Error(
+        'This photo could not be prepared. Please choose a JPEG, PNG, WebP, or a standard iPhone HEIC photo.'
+      );
+    }
   }
 
   const scale = Math.min(
