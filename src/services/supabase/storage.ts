@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './client';
 import { STORAGE_BUCKETS } from '@/utils/constants';
-import { compressImage, getChildPhotoPath, getStoryImagePath } from '@/utils/helpers';
+import { getChildPhotoPath, getStoryImagePath } from '@/utils/helpers';
 import * as FileSystem from 'expo-file-system';
 
 /**
@@ -37,14 +37,7 @@ export async function uploadChildPhoto(
   photoUri: string,
   photoIndex: number
 ): Promise<string> {
-  let uriToUpload = photoUri;
-
-  // Only compress on native (web blob URLs don't work with ImageManipulator)
-  if (Platform.OS !== 'web') {
-    uriToUpload = await compressImage(photoUri);
-  }
-
-  const bytes = await getImageBytes(uriToUpload);
+  const bytes = await getImageBytes(photoUri);
   const path = getChildPhotoPath(userId, childId, photoIndex);
 
   const { data, error } = await supabase.storage
@@ -70,7 +63,8 @@ export async function uploadChildPhoto(
 export async function uploadStoryImage(
   storyId: string,
   pageNumber: number,
-  imageBase64: string
+  imageBase64: string,
+  mimeType: string = 'image/png'
 ): Promise<string> {
   // Convert base64 to ArrayBuffer
   const binaryString = atob(imageBase64);
@@ -79,12 +73,12 @@ export async function uploadStoryImage(
     bytes[i] = binaryString.charCodeAt(i);
   }
 
-  const path = getStoryImagePath(storyId, pageNumber);
+  const path = getStoryImagePath(storyId, pageNumber, mimeType);
 
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKETS.STORY_IMAGES)
     .upload(path, bytes, {
-      contentType: 'image/jpeg',
+      contentType: mimeType,
       upsert: false,
     });
 

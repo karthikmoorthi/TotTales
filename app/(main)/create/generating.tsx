@@ -13,22 +13,37 @@ import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
 export default function GeneratingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { childId, themeId, artStyleId } = useLocalSearchParams<{
+  const { childId, themeId, artStyleId, generationKey } = useLocalSearchParams<{
     childId?: string;
     themeId?: string;
     artStyleId?: string;
+    generationKey?: string;
   }>();
   const { user } = useAuth();
   const { reset } = useStoryCreation();
   const { progress, mutate, isError, error } = useCreateStory();
   const startedRef = useRef(false);
+  const effectiveGenerationKey = generationKey || (
+    user && childId && themeId && artStyleId
+      ? `legacy:${user.id}:${childId}:${themeId}:${artStyleId}`
+      : undefined
+  );
 
   useEffect(() => {
-    if (startedRef.current || !user || !childId || !themeId || !artStyleId) return;
+    if (
+      startedRef.current || !user || !childId || !themeId || !artStyleId ||
+      !effectiveGenerationKey
+    ) return;
     startedRef.current = true;
 
     mutate(
-      { userId: user.id, childId, themeId, artStyleId },
+      {
+        userId: user.id,
+        childId,
+        themeId,
+        artStyleId,
+        generationKey: effectiveGenerationKey,
+      },
       {
         onSuccess: (storyId) => {
           reset();
@@ -36,7 +51,16 @@ export default function GeneratingScreen() {
         },
       }
     );
-  }, [artStyleId, childId, mutate, reset, router, themeId, user]);
+  }, [
+    artStyleId,
+    childId,
+    effectiveGenerationKey,
+    mutate,
+    reset,
+    router,
+    themeId,
+    user,
+  ]);
 
   if (isError || !childId || !themeId || !artStyleId) {
     return (

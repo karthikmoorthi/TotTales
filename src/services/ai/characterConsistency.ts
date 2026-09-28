@@ -28,22 +28,31 @@ export async function loadChildPhotoInputs(
   photoUris: string[],
   limit: number = 3
 ): Promise<{ base64: string; mimeType: string }[]> {
-  return Promise.all(
+  const results = await Promise.all(
     photoUris.slice(0, limit).map(async (uri) => {
-      let imageUri = uri;
+      try {
+        let imageUri = uri;
 
-      if (isSupabaseStorageUrl(uri)) {
-        const path = extractStoragePath(uri);
-        if (path) {
-          imageUri = await getSignedUrl(STORAGE_BUCKETS.CHILD_PHOTOS, path, 300);
+        if (isSupabaseStorageUrl(uri)) {
+          const path = extractStoragePath(uri);
+          if (path) {
+            imageUri = await getSignedUrl(STORAGE_BUCKETS.CHILD_PHOTOS, path, 300);
+          }
         }
-      }
 
-      return {
-        base64: await imageToBase64(imageUri),
-        mimeType: 'image/jpeg',
-      };
+        return {
+          base64: await imageToBase64(imageUri),
+          mimeType: 'image/jpeg',
+        };
+      } catch (error) {
+        console.warn('Skipping a child photo that could not be prepared:', error);
+        return null;
+      }
     })
+  );
+
+  return results.filter(
+    (result): result is { base64: string; mimeType: string } => result !== null
   );
 }
 
@@ -59,6 +68,16 @@ export async function analyzeChildPhotos(
 ): Promise<string> {
   // Convert photos to base64, handling both local URIs and Supabase URLs
   const images = await loadChildPhotoInputs(photoUris);
+
+  if (images.length === 0) {
+    const age = childAge ? `${childAge}-year-old` : 'young';
+    const gender = childGender === 'male'
+      ? 'boy'
+      : childGender === 'female'
+        ? 'girl'
+        : 'child';
+    return `A ${age} ${gender} named ${childName}, shown with age-appropriate proportions, a warm expression, and a consistent child-friendly appearance.`;
+  }
 
   const prompt = `You are helping create a children's storybook. Analyze these photos of a child and provide a detailed character description that can be used to maintain consistency when generating illustrations.
 

@@ -128,6 +128,7 @@ export type Database = {
           child_id: string
           cover_image_url: string | null
           created_at: string
+          generation_key: string | null
           id: string
           status: string
           theme_id: string
@@ -141,6 +142,7 @@ export type Database = {
           child_id: string
           cover_image_url?: string | null
           created_at?: string
+          generation_key?: string | null
           id?: string
           status?: string
           theme_id: string
@@ -154,6 +156,7 @@ export type Database = {
           child_id?: string
           cover_image_url?: string | null
           created_at?: string
+          generation_key?: string | null
           id?: string
           status?: string
           theme_id?: string

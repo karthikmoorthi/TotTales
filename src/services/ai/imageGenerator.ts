@@ -1,6 +1,7 @@
 import { buildCharacterConsistentPrompt } from './characterConsistency';
 import { retryWithBackoff } from '@/utils/helpers';
 import { supabase } from '@/services/supabase/client';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 interface ImageGenerationInput {
   artStyleModifier: string;
@@ -20,6 +21,22 @@ interface ImageFunctionResponse {
   base64?: string;
   mimeType?: string;
   error?: string;
+}
+
+async function describeImageFunctionError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = (await error.context.clone().json()) as { error?: unknown };
+      if (typeof payload.error === 'string' && payload.error.trim()) {
+        return payload.error.trim();
+      }
+    } catch {
+      // Fall through to the SDK error message.
+    }
+  }
+  return error instanceof Error && error.message
+    ? error.message
+    : 'The image service could not be reached.';
 }
 
 /**
@@ -59,8 +76,9 @@ export async function generateStoryImage(
     );
 
     if (error) {
-      console.error('[ImageGenerator] Edge Function error:', error.message);
-      throw new Error(`OpenAI image service is unavailable. ${error.message}`);
+      const detail = await describeImageFunctionError(error);
+      console.error('[ImageGenerator] Edge Function error:', detail);
+      throw new Error(`OpenAI image service is unavailable. ${detail}`);
     }
 
     if (!data?.base64) {

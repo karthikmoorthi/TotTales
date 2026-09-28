@@ -127,6 +127,31 @@ export async function createStory(story: StoryInsert): Promise<Story> {
   return data;
 }
 
+export async function claimStoryGeneration(
+  story: StoryInsert
+): Promise<{ story: Story; claimed: boolean }> {
+  const { data, error } = await supabase
+    .from('stories')
+    .insert(story)
+    .select()
+    .single();
+
+  if (!error && data) return { story: data, claimed: true };
+
+  if (error?.code === '23505' && story.generation_key) {
+    const { data: existing, error: lookupError } = await supabase
+      .from('stories')
+      .select('*')
+      .eq('generation_key', story.generation_key)
+      .single();
+
+    if (lookupError) throw lookupError;
+    return { story: existing, claimed: false };
+  }
+
+  throw error;
+}
+
 export async function getStoriesByUser(userId: string): Promise<Story[]> {
   const { data, error } = await supabase
     .from('stories')

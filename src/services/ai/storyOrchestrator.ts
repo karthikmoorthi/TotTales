@@ -3,7 +3,7 @@ import { runAgenticStoryLoop } from './agenticStoryLoop';
 import { generateStoryImage, validateImagePrompt } from './imageGenerator';
 import { uploadStoryImage } from '@/services/supabase/storage';
 import {
-  createStory,
+  claimStoryGeneration,
   updateStory,
   createStoryPages,
   updateStoryPage,
@@ -20,6 +20,7 @@ interface StoryCreationInput {
   childId: string;
   themeId: string;
   artStyleId: string;
+  generationKey: string;
 }
 
 type ProgressCallback = (progress: GenerationProgress) => void;
@@ -42,7 +43,7 @@ export async function createCompleteStory(
   input: StoryCreationInput,
   onProgress?: ProgressCallback
 ): Promise<string> {
-  const { userId, childId, themeId, artStyleId } = input;
+  const { userId, childId, themeId, artStyleId, generationKey } = input;
 
   // Randomly select story type for surprise/delight
   const storyType = getRandomStoryType();
@@ -65,6 +66,21 @@ export async function createCompleteStory(
   if (!child) throw new Error('Child not found');
   if (!theme) throw new Error('Theme not found');
   if (!artStyle) throw new Error('Art style not found');
+
+  const { story, claimed } = await claimStoryGeneration({
+    user_id: userId,
+    child_id: childId,
+    title: `${child.name}'s Adventure`,
+    theme_id: themeId,
+    art_style_id: artStyleId,
+    generation_key: generationKey,
+    status: 'generating',
+    total_pages: DEFAULT_PAGE_COUNT,
+  });
+
+  // Another tab or a reload already owns this generation job. Reuse it
+  // instead of spending on duplicate text and image requests.
+  if (!claimed) return story.id;
 
   // Get or generate character description
   let characterDescription = child.character_description;
@@ -97,17 +113,6 @@ export async function createCompleteStory(
   const referencePhotos = photoUrls.length
     ? await loadChildPhotoInputs(photoUrls)
     : [];
-
-  // Create story record
-  const story = await createStory({
-    user_id: userId,
-    child_id: childId,
-    title: `${child.name}'s Adventure`, // Temporary title, will be updated
-    theme_id: themeId,
-    art_style_id: artStyleId,
-    status: 'generating',
-    total_pages: DEFAULT_PAGE_COUNT,
-  });
 
   try {
     // Stage 2-4: Run Agentic Story Loop (Architect → Wordsmith → Critic with revisions)
@@ -193,7 +198,12 @@ export async function createCompleteStory(
 
         // Upload to storage
         console.log(`[StoryOrchestrator] Uploading image for page ${i + 1}...`);
-        const imageUrl = await uploadStoryImage(story.id, pageNarrative.pageNumber, image.base64);
+        const imageUrl = await uploadStoryImage(
+          story.id,
+          pageNarrative.pageNumber,
+          image.base64,
+          image.mimeType
+        );
         console.log(`[StoryOrchestrator] Image uploaded for page ${i + 1}: ${imageUrl}`);
 
         // Update page with image
@@ -288,7 +298,12 @@ export async function regeneratePageIllustration(
   });
 
   // Upload new image
-  const imageUrl = await uploadStoryImage(story.id, page.page_number, image.base64);
+  const imageUrl = await uploadStoryImage(
+    story.id,
+    page.page_number,
+    image.base64,
+    image.mimeType
+  );
 
   // Update page
   await updateStoryPage(pageId, {

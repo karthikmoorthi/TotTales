@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import { useArtStyles } from '@/hooks/useThemesAndStyles';
 import { Header, Button, LoadingSpinner } from '@/components/ui';
 import { StyleSelector } from '@/components/creation';
 import { COLORS, SPACING } from '@/utils/constants';
+import { generateId } from '@/utils/helpers';
 
 export default function SelectStyleScreen() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function SelectStyleScreen() {
   const { user } = useAuth();
   const { state, setArtStyle } = useStoryCreation();
   const { data: artStyles, isLoading } = useArtStyles();
+  const generationKey = useRef(generateId());
 
   // Redirect if missing required state
   if (!state.childId || !state.themeId) {
@@ -30,6 +32,7 @@ export default function SelectStyleScreen() {
         childId: state.childId!,
         themeId: state.themeId!,
         artStyleId: state.artStyleId,
+        generationKey: generationKey.current,
       },
     });
   };

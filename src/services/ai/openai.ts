@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase/client';
 
 interface ImageInput {
@@ -10,7 +11,20 @@ interface TextFunctionResponse {
   error?: string;
 }
 
-function describeFunctionError(error: unknown): string {
+async function describeFunctionError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = (await error.context.clone().json()) as {
+        error?: unknown;
+      };
+      if (typeof payload.error === 'string' && payload.error.trim()) {
+        return payload.error.trim();
+      }
+    } catch {
+      // Fall back to the SDK error below when the function did not return JSON.
+    }
+  }
+
   if (error instanceof Error && error.message) return error.message;
   return 'The AI service could not be reached.';
 }
@@ -25,8 +39,9 @@ async function invokeTextFunction(
   );
 
   if (error) {
+    const detail = await describeFunctionError(error);
     throw new Error(
-      `OpenAI text service is unavailable. ${describeFunctionError(error)}`
+      `OpenAI text service is unavailable. ${detail}`
     );
   }
 

@@ -42,6 +42,7 @@ export function useCreateStory() {
       childId: string;
       themeId: string;
       artStyleId: string;
+      generationKey: string;
     }) => {
       return createCompleteStory(input, setProgress);
     },

@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { isAuthenticatedUserRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,9 @@ Deno.serve(async (request: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (!isAuthenticatedUserRequest(request)) {
+    return json({ error: "Authentication required." }, 401);
+  }
 
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
@@ -87,10 +91,16 @@ Deno.serve(async (request: Request) => {
 
   const payload = await response.json().catch(() => ({})) as {
     data?: Array<{ b64_json?: string }>;
-    error?: { message?: string };
+    error?: { code?: string; message?: string; param?: string; type?: string };
   };
   if (!response.ok) {
-    console.error("OpenAI image request failed", response.status);
+    console.error("OpenAI image request failed", {
+      status: response.status,
+      code: payload.error?.code,
+      message: payload.error?.message,
+      param: payload.error?.param,
+      type: payload.error?.type,
+    });
     return json(
       { error: payload.error?.message || "The image model request failed." },
       response.status >= 500 ? 502 : response.status

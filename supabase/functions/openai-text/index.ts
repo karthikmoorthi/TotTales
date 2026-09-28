@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { isAuthenticatedUserRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,34 @@ type TextRequest = {
   prompt?: string;
   images?: ImageInput[];
 };
+
+function detectImageMimeType(base64: string): string | null {
+  let bytes: number[];
+  try {
+    bytes = Array.from(atob(base64.slice(0, 32)), (char) => char.charCodeAt(0));
+  } catch {
+    return null;
+  }
+
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e &&
+    bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a &&
+    bytes[6] === 0x1a && bytes[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+  const signature = String.fromCharCode(...bytes);
+  if (signature.startsWith("GIF87a") || signature.startsWith("GIF89a")) {
+    return "image/gif";
+  }
+  if (signature.startsWith("RIFF") && signature.slice(8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  return null;
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -52,6 +81,9 @@ Deno.serve(async (request: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (!isAuthenticatedUserRequest(request)) {
+    return json({ error: "Authentication required." }, 401);
+  }
 
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
@@ -74,11 +106,22 @@ Deno.serve(async (request: Request) => {
     return json({ error: "One or more image inputs are invalid or too large." }, 413);
   }
 
+  const normalizedImages = images.map((image) => ({
+    ...image,
+    mimeType: detectImageMimeType(image.base64),
+  }));
+  if (normalizedImages.some((image) => !image.mimeType)) {
+    return json(
+      { error: "One or more photos are not a valid JPEG, PNG, GIF, or WebP image. Please upload the photos again." },
+      415
+    );
+  }
+
   const content: Array<Record<string, string>> = [
     { type: "input_text", text: prompt },
-    ...images.map((image) => ({
+    ...normalizedImages.map((image) => ({
       type: "input_image",
-      image_url: `data:${image.mimeType || "image/jpeg"};base64,${image.base64}`,
+      image_url: `data:${image.mimeType};base64,${image.base64}`,
     })),
   ];
 
@@ -96,8 +139,19 @@ Deno.serve(async (request: Request) => {
 
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) {
-    const apiError = payload.error as { message?: string } | undefined;
-    console.error("OpenAI text request failed", response.status);
+    const apiError = payload.error as {
+      code?: string;
+      message?: string;
+      param?: string;
+      type?: string;
+    } | undefined;
+    console.error("OpenAI text request failed", {
+      status: response.status,
+      code: apiError?.code,
+      message: apiError?.message,
+      param: apiError?.param,
+      type: apiError?.type,
+    });
     return json(
       { error: apiError?.message || "The text model request failed." },
       response.status >= 500 ? 502 : response.status
