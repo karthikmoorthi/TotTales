@@ -20,7 +20,7 @@ import { useUserStories, useDeleteStory } from '@/hooks/useStories';
 import { Header, EmptyState, LoadingSpinner } from '@/components/ui';
 import { Story } from '@/types';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '@/utils/constants';
-import { formatDate, truncateText } from '@/utils/helpers';
+import { formatDate } from '@/utils/helpers';
 
 export default function LibraryScreen() {
   const router = useRouter();

@@ -2,6 +2,77 @@ import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { IMAGE_COMPRESSION_QUALITY, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT } from './constants';
+import { convertHeicToJpeg } from './heic';
+
+async function normalizeWebImage(uri: string): Promise<Blob> {
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error('The selected photo could not be loaded. Please choose it again.');
+  }
+
+  const source = await response.blob();
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(source);
+  } catch {
+    try {
+      // Chrome cannot decode iPhone HEIC/HEIF photos natively. Convert them
+      // entirely in the browser so family photos never leave the device until
+      // the normalized JPEG is ready for the user's Supabase storage.
+      const jpeg = await convertHeicToJpeg(source, IMAGE_COMPRESSION_QUALITY);
+      bitmap = await createImageBitmap(jpeg);
+    } catch {
+      throw new Error(
+        'This photo could not be prepared. Please choose a JPEG, PNG, WebP, or a standard iPhone HEIC photo.'
+      );
+    }
+  }
+
+  const scale = Math.min(
+    1,
+    IMAGE_MAX_WIDTH / bitmap.width,
+    IMAGE_MAX_HEIGHT / bitmap.height
+  );
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    bitmap.close();
+    throw new Error('This browser could not prepare the selected photo.');
+  }
+
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('This browser could not convert the selected photo.'));
+      },
+      'image/jpeg',
+      IMAGE_COMPRESSION_QUALITY
+    );
+  });
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1];
+      if (base64) resolve(base64);
+      else reject(new Error('The selected photo could not be encoded.'));
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 
 /**
  * Generate a unique ID
@@ -15,9 +86,8 @@ export function generateId(): string {
  */
 export async function compressImage(uri: string): Promise<string> {
   if (Platform.OS === 'web') {
-    // ImageManipulator doesn't work well on web with blob URLs
-    // Return original URI - web images are typically already optimized
-    return uri;
+    const normalized = await normalizeWebImage(uri);
+    return URL.createObjectURL(normalized);
   }
 
   const result = await ImageManipulator.manipulateAsync(
@@ -33,20 +103,7 @@ export async function compressImage(uri: string): Promise<string> {
  */
 export async function imageToBase64(uri: string): Promise<string> {
   if (Platform.OS === 'web') {
-    // On web, fetch the blob and convert to base64
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        // Remove the data:image/...;base64, prefix
-        const base64 = dataUrl.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    return blobToBase64(await normalizeWebImage(uri));
   } else {
     // On native, use FileSystem
     const base64 = await FileSystem.readAsStringAsync(uri, {
@@ -75,9 +132,14 @@ export function getChildPhotoPath(userId: string, childId: string, photoIndex: n
 /**
  * Generate a storage path for story images
  */
-export function getStoryImagePath(storyId: string, pageNumber: number): string {
+export function getStoryImagePath(
+  storyId: string,
+  pageNumber: number,
+  mimeType: string = 'image/png'
+): string {
   const timestamp = Date.now();
-  return `${storyId}/page-${pageNumber}-${timestamp}.jpg`;
+  const extension = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+  return `${storyId}/page-${pageNumber}-${timestamp}.${extension}`;
 }
 
 /**

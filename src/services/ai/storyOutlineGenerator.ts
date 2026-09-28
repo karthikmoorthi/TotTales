@@ -1,4 +1,4 @@
-import { generateText } from './gemini';
+import { generateText } from './openai';
 import { StoryOutline, StoryType, Theme } from '@/types';
 import { safeJsonParse } from '@/utils/helpers';
 

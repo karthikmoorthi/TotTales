@@ -2,14 +2,14 @@
 
 ## Overview
 
-TotTales generates personalized children's storybooks using a multi-phase AI pipeline powered by Google Gemini. The system creates 10-page illustrated stories where the child is the hero.
+TotTales generates personalized children's storybooks using a multi-phase pipeline backed by server-side OpenAI calls. The system creates 10-page illustrated stories where the child is the hero.
 
 ---
 
 ## 1. Story Line Generation
 
 ### Phase 1: Character Analysis
-**Model:** Gemini 2.0 Flash Lite (Vision)
+**Provider:** OpenAI Responses API with image inputs
 
 When a parent uploads photos of their child, the AI analyzes them to create a **character description**:
 - Hair (color, style, length, texture)
@@ -20,7 +20,7 @@ When a parent uploads photos of their child, the AI analyzes them to create a **
 This description ensures visual consistency across all illustrations.
 
 ### Phase 2: Story Outline Generation
-**Model:** Gemini 2.0 Flash Lite (Text)
+**Provider:** OpenAI Responses API
 
 Before writing the full narrative, the system generates a structured **outline** using the "Rule of Three" - a proven children's literature technique:
 
@@ -41,7 +41,7 @@ The outline is shaped by the selected **Story Type**:
 - **Learning**: Curiosity-driven with "aha" moments
 
 ### Phase 3: Narrative Expansion
-**Model:** Gemini 2.0 Flash Lite (Text)
+**Provider:** OpenAI Responses API
 
 The outline is expanded into a full 10-page narrative:
 
@@ -66,7 +66,7 @@ Each page includes:
 ## 2. Illustration Generation
 
 ### Per-Page Image Creation
-**Model:** Gemini 2.5 Flash Image
+**Provider:** GPT Image 2
 
 For each of the 10 pages, an illustration is generated using a composite prompt:
 
@@ -125,7 +125,7 @@ Description: [AI-generated physical description from photos]
                                                     ┌─────────────────────┐
                                                     │ Generate 10         │
                                                     │ Illustrations       │
-                                                    │ (Gemini 2.5 Flash)  │
+                                                    │ (GPT Image 2)       │
                                                     └─────────────────────┘
                                                              │
                                                              ▼

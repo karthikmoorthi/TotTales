@@ -8,7 +8,6 @@ export const MAX_PHOTOS_PER_CHILD = 5;
 
 // Agentic Story Loop (TotTales 2.0)
 export const MAX_REVISION_ROUNDS = 2; // Cap revision loops to prevent infinite retries
-export const MIN_LANGUAGE_CHECKS_PASS = 3; // Language checks: 3 of 4 must pass
 
 // Image Settings
 export const IMAGE_COMPRESSION_QUALITY = 0.8;
@@ -23,7 +22,6 @@ export const GENERATION_TIMEOUT = 120000;
 export const STORAGE_BUCKETS = {
   CHILD_PHOTOS: 'child-photos',
   STORY_IMAGES: 'story-images',
-  PREVIEW_IMAGES: 'preview-images',
 } as const;
 
 // Generation Stages

@@ -7,7 +7,7 @@ import {
 } from '@/services/supabase/database';
 import { uploadChildPhoto } from '@/services/supabase/storage';
 import { analyzeChildPhotos } from '@/services/ai';
-import { ChildInsert } from '@/types';
+import { compressImage } from '@/utils/helpers';
 
 export function useUserChildren(userId: string | undefined) {
   return useQuery({
@@ -40,6 +40,10 @@ export function useCreateChild() {
     mutationFn: async (input: CreateChildInput) => {
       const { userId, name, ageYears, gender, photoUris } = input;
 
+      // Validate and normalize all photos before creating any database record.
+      // This prevents unsupported browser formats from leaving orphan children.
+      const preparedPhotoUris = await Promise.all(photoUris.map(compressImage));
+
       // Create child record first
       const child = await createChild({
         user_id: userId,
@@ -50,8 +54,13 @@ export function useCreateChild() {
 
       // Upload photos
       const uploadedUrls: string[] = [];
-      for (let i = 0; i < photoUris.length; i++) {
-        const url = await uploadChildPhoto(userId, child.id, photoUris[i], i);
+      for (let i = 0; i < preparedPhotoUris.length; i++) {
+        const url = await uploadChildPhoto(
+          userId,
+          child.id,
+          preparedPhotoUris[i],
+          i
+        );
         uploadedUrls.push(url);
       }
 
@@ -60,7 +69,7 @@ export function useCreateChild() {
       if (uploadedUrls.length > 0) {
         try {
           characterDescription = await analyzeChildPhotos(
-            photoUris,
+            preparedPhotoUris,
             name,
             ageYears,
             gender

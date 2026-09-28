@@ -1,52 +1,40 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStoryCreation } from '@/contexts/StoryCreationContext';
 import { useArtStyles } from '@/hooks/useThemesAndStyles';
-import { useCreateStory } from '@/hooks/useStories';
 import { Header, Button, LoadingSpinner } from '@/components/ui';
 import { StyleSelector } from '@/components/creation';
 import { COLORS, SPACING } from '@/utils/constants';
+import { generateId } from '@/utils/helpers';
 
 export default function SelectStyleScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { state, setArtStyle, reset } = useStoryCreation();
+  const { state, setArtStyle } = useStoryCreation();
   const { data: artStyles, isLoading } = useArtStyles();
-  const createStory = useCreateStory();
+  const generationKey = useRef(generateId());
 
   // Redirect if missing required state
   if (!state.childId || !state.themeId) {
     return <Redirect href="/(main)/create/upload-photo" />;
   }
 
-  const handleCreateStory = async () => {
+  const handleCreateStory = () => {
     if (!state.artStyleId || !user) return;
 
-    try {
-      const storyId = await createStory.mutateAsync({
-        userId: user.id,
+    router.push({
+      pathname: '/(main)/create/generating',
+      params: {
         childId: state.childId!,
         themeId: state.themeId!,
         artStyleId: state.artStyleId,
-      });
-
-      // Reset creation state
-      reset();
-
-      // Navigate to the reading screen
-      router.replace(`/(main)/read/${storyId}`);
-    } catch (error) {
-      console.error('Error creating story:', error);
-      // Stay on generating page to show error
-      router.push({
-        pathname: '/(main)/create/generating',
-        params: { error: 'true' },
-      });
-    }
+        generationKey: generationKey.current,
+      },
+    });
   };
 
   return (
@@ -78,7 +66,6 @@ export default function SelectStyleScreen() {
         <Button
           title="Create Story"
           onPress={handleCreateStory}
-          loading={createStory.isPending}
           disabled={!state.artStyleId}
         />
       </View>

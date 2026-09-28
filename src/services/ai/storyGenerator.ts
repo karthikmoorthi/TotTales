@@ -1,4 +1,4 @@
-import { generateText } from './gemini';
+import { generateText } from './openai';
 import { StoryNarrative, PageNarrative, Theme, StoryOutline } from '@/types';
 import { DEFAULT_PAGE_COUNT } from '@/utils/constants';
 import { safeJsonParse } from '@/utils/helpers';

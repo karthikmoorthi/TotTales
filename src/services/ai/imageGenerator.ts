@@ -1,9 +1,7 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { buildCharacterConsistentPrompt } from './characterConsistency';
 import { retryWithBackoff } from '@/utils/helpers';
-
-const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY!;
-const genAI = new GoogleGenerativeAI(API_KEY);
+import { supabase } from '@/services/supabase/client';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 interface ImageGenerationInput {
   artStyleModifier: string;
@@ -19,18 +17,30 @@ interface GeneratedImage {
   mimeType: string;
 }
 
-// Timeout wrapper for promises
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
-    ),
-  ]);
+interface ImageFunctionResponse {
+  base64?: string;
+  mimeType?: string;
+  error?: string;
+}
+
+async function describeImageFunctionError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = (await error.context.clone().json()) as { error?: unknown };
+      if (typeof payload.error === 'string' && payload.error.trim()) {
+        return payload.error.trim();
+      }
+    } catch {
+      // Fall through to the SDK error message.
+    }
+  }
+  return error instanceof Error && error.message
+    ? error.message
+    : 'The image service could not be reached.';
 }
 
 /**
- * Generate an illustration for a story page using Gemini's image generation
+ * Generate an illustration for a story page using the server-side AI provider.
  */
 export async function generateStoryImage(
   input: ImageGenerationInput
@@ -51,55 +61,34 @@ export async function generateStoryImage(
     `${sceneDescription}\n\nAdditional details: ${imagePrompt}`
   );
 
-  console.log('[ImageGenerator] Starting image generation...');
+  console.log('[ImageGenerator] Requesting server-side image generation...');
 
   // Use retry logic for API calls
   return retryWithBackoff(async () => {
-    try {
-      // Using Gemini 2.5 Flash Image for image generation
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash-image',
-        generationConfig: {
-          responseModalities: ['Text', 'Image'],
-        } as any,
-      });
-
-      console.log('[ImageGenerator] Calling Gemini API...');
-
-      // Add 60 second timeout for image generation
-      const response = await withTimeout(
-        model.generateContent(fullPrompt),
-        60000,
-        'Image generation timed out after 60 seconds'
-      );
-
-      const result = response.response;
-      console.log('[ImageGenerator] Got response from Gemini');
-
-      // Extract image from response
-      const parts = result.candidates?.[0]?.content?.parts || [];
-      console.log('[ImageGenerator] Response parts count:', parts.length);
-
-      for (const part of parts) {
-        if ((part as any).inlineData?.data) {
-          console.log('[ImageGenerator] Image generated successfully');
-          return {
-            base64: (part as any).inlineData.data,
-            mimeType: (part as any).inlineData.mimeType || 'image/png',
-          };
-        }
+    const { data, error } = await supabase.functions.invoke<ImageFunctionResponse>(
+      'openai-image',
+      {
+        body: {
+          prompt: fullPrompt,
+          referenceImages: input.referencePhotoBase64 || [],
+        },
       }
+    );
 
-      console.error('[ImageGenerator] No image in response. Parts:', JSON.stringify(parts).substring(0, 500));
-      throw new Error('No image generated in response');
-    } catch (error: any) {
-      console.error('[ImageGenerator] Error:', error.message);
-      // Check if it's a content safety error
-      if (error.message?.includes('SAFETY') || error.message?.includes('blocked')) {
-        throw new Error('Image generation blocked by safety filters. Please try a different scene.');
-      }
-      throw error;
+    if (error) {
+      const detail = await describeImageFunctionError(error);
+      console.error('[ImageGenerator] Edge Function error:', detail);
+      throw new Error(`OpenAI image service is unavailable. ${detail}`);
     }
+
+    if (!data?.base64) {
+      throw new Error(data?.error || 'OpenAI returned an empty image response.');
+    }
+
+    return {
+      base64: data.base64,
+      mimeType: data.mimeType || 'image/png',
+    };
   }, 3, 2000);
 }
 
@@ -128,8 +117,7 @@ export async function generateStoryImages(
 }
 
 /**
- * Alternative: Generate image using Imagen via Vertex AI
- * This is a fallback if Gemini image generation isn't available
+ * A fallback provider can be added behind the same server boundary later.
  */
 export async function generateImageFallback(
   prompt: string

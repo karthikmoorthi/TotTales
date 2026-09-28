@@ -850,7 +850,7 @@ const AGENTIC_STAGES = {
 
 1. **Use faster model for Critic**
    - Critic needs less creativity, more analysis
-   - Use `gemini-2.0-flash-lite` (fastest)
+   - Use the configured server-side text model
 
 2. **Parallel processing**
    - Start image generation for approved pages while later pages generate

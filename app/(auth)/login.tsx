@@ -1,5 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
   View,
   Text,
   StyleSheet,
@@ -10,12 +14,47 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoadingSpinner, Button } from '@/components/ui';
+import { LoadingSpinner } from '@/components/ui';
 import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
 
 export default function LoginScreen() {
-  const { isAuthenticated, isLoading, signIn } = useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    googleConfigured,
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+  } = useAuth();
   const insets = useSafeAreaInsets();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+
+  async function handleEmailSubmit() {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || password.length < 8) {
+      Alert.alert('Check your details', 'Enter a valid email and a password of at least 8 characters.');
+      return;
+    }
+
+    try {
+      if (isCreatingAccount) {
+        const confirmationRequired = await signUpWithEmail(normalizedEmail, password);
+        if (confirmationRequired) {
+          Alert.alert('Check your email', 'Confirm your email, then return here to sign in.');
+          setIsCreatingAccount(false);
+        }
+      } else {
+        await signInWithEmail(normalizedEmail, password);
+      }
+    } catch (error) {
+      Alert.alert(
+        isCreatingAccount ? 'Could not create account' : 'Could not sign in',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    }
+  }
 
   if (isLoading) {
     return <LoadingSpinner fullScreen message="Loading..." />;
@@ -30,7 +69,10 @@ export default function LoginScreen() {
       colors={[COLORS.primary, COLORS.primaryDark]}
       style={styles.container}
     >
-      <View style={[styles.content, { paddingTop: insets.top + SPACING.xl }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.content, { paddingTop: insets.top + SPACING.xl }]}
+      >
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Ionicons name="book" size={64} color="#FFFFFF" />
@@ -60,20 +102,54 @@ export default function LoginScreen() {
         </View>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={signIn}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="logo-google" size={24} color={COLORS.text} />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          <TextInput
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            placeholder="Email address"
+            placeholderTextColor={COLORS.textMuted}
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            autoCapitalize="none"
+            autoComplete={isCreatingAccount ? 'new-password' : 'current-password'}
+            placeholder="Password"
+            placeholderTextColor={COLORS.textMuted}
+            secureTextEntry
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            onSubmitEditing={handleEmailSubmit}
+          />
+          <TouchableOpacity style={styles.emailButton} onPress={handleEmailSubmit}>
+            <Text style={styles.emailButtonText}>
+              {isCreatingAccount ? 'Create account' : 'Sign in'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setIsCreatingAccount((value) => !value)}>
+            <Text style={styles.modeText}>
+              {isCreatingAccount ? 'Already have an account? Sign in' : 'New here? Create an account'}
+            </Text>
           </TouchableOpacity>
 
+          {googleConfigured && (
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={signInWithGoogle}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="logo-google" size={24} color={COLORS.text} />
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
+          )}
+
           <Text style={styles.termsText}>
-            By continuing, you agree to our Terms of Service and Privacy Policy
+            Private revival build — privacy and parental-consent controls are not finalized
           </Text>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
@@ -106,20 +182,23 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
     paddingHorizontal: SPACING.xl,
   },
   header: {
     alignItems: 'center',
-    marginTop: SPACING['2xl'],
+    marginTop: SPACING.sm,
   },
   logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.sm,
   },
   title: {
     fontSize: FONT_SIZES['4xl'],
@@ -134,22 +213,20 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   features: {
-    flex: 1,
-    justifyContent: 'center',
-    marginVertical: SPACING.xl,
+    marginVertical: SPACING.lg,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
+    padding: SPACING.sm,
+    marginBottom: SPACING.sm,
   },
   featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -171,6 +248,33 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
   },
+  input: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    color: COLORS.text,
+    borderRadius: 12,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    marginBottom: SPACING.sm,
+    fontSize: FONT_SIZES.base,
+  },
+  emailButton: {
+    width: '100%',
+    alignItems: 'center',
+    backgroundColor: COLORS.secondary,
+    paddingVertical: SPACING.md,
+    borderRadius: 12,
+  },
+  emailButtonText: {
+    color: '#FFFFFF',
+    fontSize: FONT_SIZES.base,
+    fontWeight: '700',
+  },
+  modeText: {
+    color: '#FFFFFF',
+    marginVertical: SPACING.md,
+    fontSize: FONT_SIZES.sm,
+  },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -181,6 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: '100%',
     gap: SPACING.md,
+    marginBottom: SPACING.md,
   },
   googleButtonText: {
     fontSize: FONT_SIZES.base,

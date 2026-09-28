@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
+import { useStoryCreation } from '@/contexts/StoryCreationContext';
+import { useCreateChild } from '@/hooks/useChildren';
+import { Header, Button } from '@/components/ui';
+import { PhotoUploader, ChildForm } from '@/components/creation';
+import { COLORS, SPACING } from '@/utils/constants';
 
 // Cross-platform alert helper
 const showAlert = (title: string, message: string) => {
@@ -9,14 +17,6 @@ const showAlert = (title: string, message: string) => {
     Alert.alert(title, message);
   }
 };
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/AuthContext';
-import { useStoryCreation } from '@/contexts/StoryCreationContext';
-import { useCreateChild } from '@/hooks/useChildren';
-import { Header, Button } from '@/components/ui';
-import { PhotoUploader, ChildForm } from '@/components/creation';
-import { COLORS, SPACING } from '@/utils/constants';
 
 interface ChildFormData {
   name: string;
@@ -85,7 +85,10 @@ export default function UploadPhotoScreen() {
       router.push('/(main)/create/select-theme');
     } catch (error) {
       console.error('Error creating child:', error);
-      showAlert('Error', 'Failed to save child profile. Please try again.');
+      const detail = error instanceof Error && error.message
+        ? error.message
+        : 'Please try again.';
+      showAlert('Failed to Save Child Profile', detail);
     }
   };
 
